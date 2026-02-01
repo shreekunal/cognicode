@@ -22,7 +22,7 @@ export default function Home() {
             </div>
             <img
               src='/logo.png'
-              alt='codegamy_logo'
+              alt='cognicode_logo'
               className='w-80 h-80 max-sm:w-64 max-sm:h-64 max-xs:w-48 max-xs:h-48 object-contain'
             />
           </div>

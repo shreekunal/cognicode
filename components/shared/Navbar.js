@@ -27,11 +27,11 @@ const Navbar = async () => {
         <Link href='/' className='flex justify-center items-center gap-3 '>
           <img
             src='/logo.png'
-            alt='codegamy_logo'
+            alt='cognicode_logo'
             className='w-8 h-8 object-contain'
           />
           <h2 className='font-bold text-2xl'>
-            CODEGAMY
+            COGNICODE
           </h2>
         </Link>
 

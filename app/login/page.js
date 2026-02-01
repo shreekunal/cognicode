@@ -22,7 +22,7 @@ export default function LoginPage() {
     });
 
     if (response.ok) {
-      await signIn('credentials', {email, password, callbackUrl: isLogin? '/' : '/edit-profile'});
+      await signIn('credentials', { email, password, callbackUrl: isLogin ? '/' : '/edit-profile' });
     } else {
       setError(true);
     }
@@ -34,7 +34,7 @@ export default function LoginPage() {
     ev.preventDefault();
     setLoginInProgress(true);
 
-    await signIn('credentials', {email, password, callbackUrl: '/'});
+    await signIn('credentials', { email, password, callbackUrl: '/' });
     setLoginInProgress(false);
   }
 
@@ -48,19 +48,19 @@ export default function LoginPage() {
       <Link href='/' className='flex justify-center items-center mb-12 gap-5'>
         <img
           src='/logo.png'
-          alt='codegamy_logo'
+          alt='cognicode_logo'
           className='w-14 h-14 object-contain'
         />
         <h2 className='font-bold text-3xl'>
-          CODEGAMY
+          COGNICODE
         </h2>
       </Link>
-      <form className="block mx-auto w-full max-w-[400px] px-2" onSubmit={isLogin? handleLogin : handleRegister}>
+      <form className="block mx-auto w-full max-w-[400px] px-2" onSubmit={isLogin ? handleLogin : handleRegister}>
         <div className="mb-4">
           <input
             type="email"
             id="email"
-            name="email" 
+            name="email"
             placeholder="Email address"
             value={email}
             disabled={loginInProgress}
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <input
             type="password"
             id="password"
-            name="password" 
+            name="password"
             placeholder="SSHHHH!! Your password"
             value={password}
             disabled={loginInProgress}
@@ -80,21 +80,21 @@ export default function LoginPage() {
             className="shadow-md p-4 bg-light-2 rounded-xl w-full sm:text-sm"
           />
         </div>
-        <div className="text-center mb-4">  
+        <div className="text-center mb-4">
           <button
             type="submit"
             disabled={loginInProgress}
             className="inline-flex items-center px-8 py-2 mt-4 bg-dark-1 text-white font-medium rounded-lg mx-auto disabled:cursor-not-allowed"
           >
-            {loginInProgress? (
+            {loginInProgress ? (
               <img src="loader.svg" alt="loading" className="w-6 h-6 object-contain" />
-            ) : isLogin? "Login" : "Register"}
+            ) : isLogin ? "Login" : "Register"}
           </button>
         </div>
         <div className="text-center text-gray-700 mt-12">
-          {isLogin? "Don't have an account?" : "Already had an account?"}{' '}
+          {isLogin ? "Don't have an account?" : "Already had an account?"}{' '}
           <span className="underline cursor-pointer" onClick={() => setIsLogin(prev => !prev)}>
-            {isLogin? "Register" : "Login"}
+            {isLogin ? "Register" : "Login"}
           </span>
         </div>
       </form>

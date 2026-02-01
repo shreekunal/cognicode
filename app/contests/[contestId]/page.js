@@ -39,23 +39,23 @@ const page = () => {
     <div className="w-full flex flex-col gap-5 max-w-6xl mx-auto px-2 mt-3 mb-10">
       <div>
         <Link href="/contests" className="font-semibold text-gray-400">
-         ⯇ Back to Contests
+          ⯇ Back to Contests
         </Link>
       </div>
 
       <div className="flex gap-5 max-md:flex-col max-md:items-center">
         <div className="flex-grow">
-          <div className={`flex border ${isUpcoming? 'border-blue-500' : isOngoing? 'border-green-500' : 'border-light-4'} rounded-lg mb-5`}>
-            <div className={`${isUpcoming? 'bg-blue-500' : isOngoing? 'bg-green-500' : 'bg-light-4'} w-5 rounded-l-lg`} />
+          <div className={`flex border ${isUpcoming ? 'border-blue-500' : isOngoing ? 'border-green-500' : 'border-light-4'} rounded-lg mb-5`}>
+            <div className={`${isUpcoming ? 'bg-blue-500' : isOngoing ? 'bg-green-500' : 'bg-light-4'} w-5 rounded-l-lg`} />
             <div className="w-full py-5 flex justify-between mx-5">
-              {isUpcoming? (
+              {isUpcoming ? (
                 <p>This contest will start in 2d 5m 16h 34s</p>
-              ) : isOngoing? (
+              ) : isOngoing ? (
                 <p>This contest will end in 1h 5m 34s</p>
               ) : (
                 <p>This contest has ended</p>
               )}
-              { isUpcoming && (
+              {isUpcoming && (
                 <Link href='/' className="flex items-center gap-3">
                   <img
                     src="/google.png"
@@ -76,9 +76,9 @@ const page = () => {
           <ul>
             <li>There will be four problems in the contest and each will have its own difficulty level.</li>
             <li>The penalty time of 5 minutes will be applied for each wrong submission.</li>
-            <li>To ensure the fairness of the contest, Codegamy will hide some
+            <li>To ensure the fairness of the contest, Cognicode will hide some
               test cases during the contest. When users submit incorrect
-              submissions, Codegamy will not show the hidden test cases to the
+              submissions, Cognicode will not show the hidden test cases to the
               users.</li>
             <li>The final rating of this contest will be updated within 5 working
               days after the contest.</li>
@@ -95,15 +95,15 @@ const page = () => {
             <h2>Prize</h2>
           </div>
           <div className="w-full mt-3 px-6">
-            {prizes.map((prize,index) => (
+            {prizes.map((prize, index) => (
               <div key={index} className="flex justify-between items-center mb-2">
                 <p className="font-medium">{prize.pos}</p>
                 <div className="flex items-center gap-1">
                   {prize.points}
-                  <img 
-                      src='/coin.png'
-                      alt='contest-icon'
-                      className='w-4 h-4 object-contain rounded-full'
+                  <img
+                    src='/coin.png'
+                    alt='contest-icon'
+                    className='w-4 h-4 object-contain rounded-full'
                   />
                 </div>
               </div>
@@ -155,7 +155,7 @@ const page = () => {
 
             {rankings.map((ranking, index) => (
               <div key={index} className="flex bg-light-1 px-4 py-2.5 hover:bg-light-2 border-b border-light-3">
-                <p className="text-sm w-[15%] text-center">{index+1}</p>
+                <p className="text-sm w-[15%] text-center">{index + 1}</p>
                 <Link href={`/profile/${ranking.username}`} className="text-sm w-[40%] hover:text-blue-500 text-center">
                   {ranking.username}
                 </Link>
@@ -165,8 +165,8 @@ const page = () => {
             ))}
 
             <div className="hover:bg-light-2 text-center rounded-b-lg flex">
-              <Link 
-                href={`/contests/${params.contestId}/ranking`} 
+              <Link
+                href={`/contests/${params.contestId}/ranking`}
                 className="w-full text-blue-500 py-3"
               >
                 More...

@@ -3,7 +3,7 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 
 export const metadata = {
-  title: "Codegamy - Your Coding Ground",
+  title: "Cognicode - Your Coding Ground",
   description: "Best Coding platform for all your needs",
 };
 
