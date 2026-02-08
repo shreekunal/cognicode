@@ -13,38 +13,35 @@ const NavMenu = ({ user }) => {
       <img
         src="/menu.png"
         alt="menu"
-        className={`w-10 h-10 max-sm:w-8 max-sm:h-8 object-contain cursor-pointer ${
-          open && "hidden"
-        }`}
+        className={`w-10 h-10 max-sm:w-8 max-sm:h-8 object-contain cursor-pointer ${open && "hidden"
+          }`}
         onClick={() => setOpen(true)}
       />
       <div className={`${!open && 'hidden'}`}>
         <div className={`flex flex-col absolute z-10 top-5 right-2 w-[300px] bg-light-2 p-3 rounded-xl shadow-xl`}>
-            <img
-                src="/menu.png"
-                alt="menu"
-                className={`w-10 h-10 max-sm:w-8 max-sm:h-8 object-contain cursor-pointer ml-auto mb-6`}
-                onClick={() => setOpen(false)}
-            />
-            <Link
+          <img
+            src="/menu.png"
+            alt="menu"
+            className={`w-10 h-10 max-sm:w-8 max-sm:h-8 object-contain cursor-pointer ml-auto mb-6`}
+            onClick={() => setOpen(false)}
+          />
+          <Link
             href={user ? "/learn" : "/login"}
-            className={`py-2 px-6 font-medium ${
-                (pathname === "/learn" || pathname.startsWith("/courses")) &&
-                "bg-dark-1 text-white rounded-full"
-            }`}
+            className={`py-2 px-6 font-medium ${(pathname === "/learn" || pathname.startsWith("/courses")) &&
+              "bg-dark-1 text-white rounded-full"
+              }`}
             onClick={() => setOpen(false)}
-            >
+          >
             Learn
-            </Link>
-            <Link
+          </Link>
+          <Link
             href={user ? "/problems" : "/login"}
-            className={`py-2 px-6 font-medium ${
-                pathname === "/problems" && "bg-dark-1 text-white rounded-full"
-            }`}
+            className={`py-2 px-6 font-medium ${pathname === "/problems" && "bg-dark-1 text-white rounded-full"
+              }`}
             onClick={() => setOpen(false)}
-            >
+          >
             Problems
-            </Link>
+          </Link>
         </div>
       </div>
     </div>
