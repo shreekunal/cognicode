@@ -43,6 +43,14 @@ const Navbar = async () => {
 
         <div className='flex items-center gap-3'>
 
+          <button className='w-10 h-10 max-sm:w-8 max-sm:h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors'>
+            <img
+              src='/dark-mode.png'
+              alt='theme toggle'
+              className='w-10 h-10 object-contain'
+            />
+          </button>
+
           <Link href={userID ? '/profile' : '/login'}>
             <img
               src='/profile.png'
