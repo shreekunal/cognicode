@@ -36,21 +36,35 @@ export const authOptions = {
       name: 'Credentials',
       id: 'credentials',
       credentials: {
-        username: { label: "Email", type: "email", placeholder: "test@example.com" },
+        email: { label: "Email", type: "email", placeholder: "test@example.com" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        const email = credentials?.email;
-        const password = credentials?.password;
+        try {
+          const email = credentials?.email;
+          const password = credentials?.password;
 
-        await dbConnect()
-        const user = await User.findOne({ email });
-        const passwordOk = user && bcrypt.compareSync(password, user.password);
-        if (passwordOk) {
-          return user;
+          if (!email || !password) {
+            return null;
+          }
+
+          await dbConnect();
+          const user = await User.findOne({ email });
+
+          if (!user || !user.password) {
+            return null;
+          }
+
+          const passwordOk = bcrypt.compareSync(password, user.password);
+          if (passwordOk) {
+            return user;
+          }
+
+          return null;
+        } catch (error) {
+          console.error('Auth error:', error);
+          return null;
         }
-
-        return null
       }
     })
   ],

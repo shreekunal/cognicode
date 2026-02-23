@@ -10,23 +10,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleRegister(ev) {
     ev.preventDefault();
     setError(false);
     setLoginInProgress(true);
 
-    const response = await fetch("/api/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-      headers: { "Content-Type": "application/json" },
-    });
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        headers: { "Content-Type": "application/json" },
+      });
 
-    if (response.ok) {
-      await signIn('credentials', { email, password, callbackUrl: isLogin ? '/' : '/edit-profile' });
-    } else {
-      setError(true);
+      if (response.ok) {
+        await signIn('credentials', { email, password, callbackUrl: '/edit-profile' });
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
     }
 
     setLoginInProgress(false);
@@ -34,17 +39,29 @@ export default function LoginPage() {
 
   async function handleLogin(ev) {
     ev.preventDefault();
+    setError(false);
     setLoginInProgress(true);
 
-    await signIn('credentials', { email, password, callbackUrl: '/' });
+    try {
+      const result = await signIn('credentials', { email, password, redirect: false });
+
+      if (result?.error) {
+        setError('Invalid email or password.');
+      } else if (result?.ok) {
+        window.location.href = '/';
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    }
+
     setLoginInProgress(false);
   }
 
   return (
     <section className="flex flex-col justify-center items-center min-h-[72vh] px-4">
       {error && (
-        <div className="my-4 text-center bg-accent py-2 px-6 text-white rounded-full cursor-pointer animate-on-load animate-slide-down" onClick={() => setError(false)}>
-          An error has occurred. Please try again!!
+        <div className="my-4 text-center bg-accent py-2 px-6 text-white rounded-full cursor-pointer animate-on-load animate-slide-down" onClick={() => setError('')}>
+          {error}
         </div>
       )}
 

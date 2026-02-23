@@ -110,3 +110,17 @@ temp/
 
 # Session files
 sessions/
+
+# Python
+python-backend/venv/
+python-backend/.venv/
+python-backend/__pycache__/
+python-backend/*.pyc
+python-backend/*.pyo
+python-backend/*.pyd
+python-backend/.Python
+python-backend/pip-log.txt
+python-backend/pip-delete-this-directory.txt
+python-backend/.pytest_cache/
+python-backend/.mypy_cache/
+python-backend/.env

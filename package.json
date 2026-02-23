@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "next lint",
     "node": "nodemon server.js",
-    "init-db": "node utils/initDatabase.js"
+    "init-db": "node utils/initDatabase.js",
+    "python": "cd python-backend && python3 main.py",
+    "dev:all": "concurrently -n next,socket,python -c blue,green,yellow \"npm run dev\" \"npm run node\" \"npm run python\"",
+    "dev:frontend": "concurrently -n next,socket -c blue,green \"npm run dev\" \"npm run node\"",
+    "stop": "pkill -f 'python3 main.py' ; pkill -f 'nodemon server.js' ; echo 'Stopped all servers'"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
@@ -60,6 +64,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.23",
+    "concurrently": "^9.2.1",
     "eslint": "9.39.2",
     "eslint-config-next": "16.1.4",
     "postcss": "^8",
