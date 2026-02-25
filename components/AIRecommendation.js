@@ -180,9 +180,8 @@ export default function AIRecommendation({ currentDifficulty }) {
 
       {/* Collapsible content */}
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
         <div className="p-3">
           {error && (

@@ -178,11 +178,10 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                activeTab === tab.key
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === tab.key
                   ? "bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
