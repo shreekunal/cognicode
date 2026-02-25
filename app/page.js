@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import "./duo-studio.css";
 
 export const dynamic = "force-dynamic";
 

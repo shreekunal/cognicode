@@ -11,62 +11,96 @@ export async function POST(req) {
     await dbConnect();
     const session = await getServerSession(authOptions);
     const userID = session?.user?._id;
-    if (userID) {
+    if (!userID) {
+        return new Response('User Not Found', { status: 401 });
+    }
 
-        const { code, problem, language, contest } = await req.json()
-        // console.log(code,problem,language,contest)
-        const user = await User.findById(userID)
-        const userdata = await UserInfo.findById(user.userInfo).populate('solved')
-        const prob = await Problem.findOne({ id: problem })
+    try {
+        const { code, problem, language, contest } = await req.json();
+        const user = await User.findById(userID);
+        const userdata = await UserInfo.findById(user.userInfo).populate('solved');
+        const prob = await Problem.findOne({ id: problem });
+
+        if (!prob) {
+            return new Response(JSON.stringify({ isAccepted: 'rejected', output: 'Problem not found' }), { status: 404 });
+        }
+
+        if (!prob.testCases || prob.testCases.length === 0) {
+            return new Response(JSON.stringify({ isAccepted: 'rejected', output: 'No test cases available' }), { status: 400 });
+        }
+
         const existingSolvedProblem = userdata.solved.find(
             (solvedProblem) => solvedProblem.problem.equals(prob._id)
         );
-        // Use Piston API for code execution
-        const { executeCode } = await import('@/utils/pistonAPI');
-        const data = await executeCode(language, code, prob.testCases[0].input[0]);
-        let tcPass;
-        let isAccepted;
-        if (data.output === prob.testCases[0].output[0]) {
-            tcPass = 1
-            isAccepted = "accepted"
-        }
-        else {
-            tcPass = 0
-            isAccepted = "rejected"
 
+        // Run ALL test cases
+        const { executeCode } = await import('@/utils/pistonAPI');
+        let passedCount = 0;
+        const totalTestCases = prob.testCases.length;
+        let lastOutput = '';
+        let lastExecData = {};
+
+        for (let i = 0; i < totalTestCases; i++) {
+            const tc = prob.testCases[i];
+            const input = tc.input?.[0] || '';
+            const expectedOutput = tc.output?.[0] || '';
+
+            const data = await executeCode(language, code, input);
+            lastOutput = data.output;
+            lastExecData = data;
+
+            // Trim whitespace for comparison to avoid false rejections
+            if (data.output?.trim() === expectedOutput.trim()) {
+                passedCount++;
+            }
         }
+
+        const isAccepted = passedCount === totalTestCases ? "accepted" : "rejected";
+
         const newSolution = {
             contest: contest !== null ? contest : undefined,
             code: code,
-            complexity: [data.cpuTime, data.memory],
+            complexity: [lastExecData.cpuTime || '0', lastExecData.memory || '0'],
             status: isAccepted,
-            passedTestCases: tcPass
+            passedTestCases: passedCount
         };
+
         if (existingSolvedProblem) {
             existingSolvedProblem.solution.push(newSolution);
-            existingSolvedProblem.save();
-            return new Response(JSON.stringify({ isAccepted, output: data.output }), { status: 201 })
-        }
-        else {
-            if ((isAccepted && contest) || !contest) {
-                const newSolve = new SolvedProblem(
-                    {
-                        contest: contest !== null ? contest : undefined,
-                        problem: prob._id,
-                        solution: [newSolution]
-
-                    }
-                )
-                const newSol = await newSolve.save()
-                userdata.solved.push(newSol.id)
-                userdata.save()
-                return new Response(JSON.stringify({ isAccepted, output: data.output }), { status: 201 })
+            await existingSolvedProblem.save();
+            return new Response(JSON.stringify({
+                isAccepted,
+                output: lastOutput,
+                passedTestCases: passedCount,
+                totalTestCases
+            }), { status: 201 });
+        } else {
+            if ((isAccepted === "accepted" && contest) || !contest) {
+                const newSolve = new SolvedProblem({
+                    contest: contest !== null ? contest : undefined,
+                    problem: prob._id,
+                    solution: [newSolution]
+                });
+                const newSol = await newSolve.save();
+                userdata.solved.push(newSol.id);
+                await userdata.save();
+                return new Response(JSON.stringify({
+                    isAccepted,
+                    output: lastOutput,
+                    passedTestCases: passedCount,
+                    totalTestCases
+                }), { status: 201 });
+            } else {
+                return new Response(JSON.stringify({
+                    isAccepted: 'rejected',
+                    output: lastOutput,
+                    passedTestCases: passedCount,
+                    totalTestCases
+                }), { status: 200 });
             }
-            else {
-                return new Response('Testcase Failed', { status: 400 })
-            }
         }
-
+    } catch (error) {
+        console.error('submitCode error:', error);
+        return new Response(JSON.stringify({ isAccepted: 'rejected', output: 'Server error: ' + error.message }), { status: 500 });
     }
-    return new Response('User Not Found', { status: 401 })
 }

@@ -1,26 +1,39 @@
 "use client";
 import Workspace from '@/components/workspace/Workspace'
-import { mockProblemsData } from '@/constants'
 import React, { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 
-const page = () => {
-
+const ProblemPage = () => {
+  const params = useParams();
   const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProblems = async () => {
-      const response = await fetch('/api/getAllProblems');
-      const data = await response.json();
-      setProblems(data);
-    }
-    fetchProblems();
-  } , []);
+    const fetchProblem = async () => {
+      try {
+        const response = await fetch(`/api/getProblembyId?id=${params.id}`);
+        const data = await response.json();
+        if (data) {
+          setProblems([data]); // Wrap single problem in array for compatibility
+        }
+      } catch (err) {
+        console.error("Failed to fetch problem:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchProblem();
+  }, [params.id]);
 
-  return (
-    <>
-        <Workspace problems={problems} />
-    </>
-  )
-}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[92vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-accent" />
+      </div>
+    );
+  }
 
-export default page
+  return <Workspace problems={problems} />;
+};
+
+export default ProblemPage;

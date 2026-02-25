@@ -312,3 +312,65 @@ public class Test
   'nodejs': `// Write your code here 
 console.log('Hello World');`
 }
+
+/**
+ * Generate a language-specific starter template from a Python starter code string.
+ * Extracts the function name and produces equivalent boilerplate in each language.
+ */
+export function getStarterForLanguage(pythonStarter, langValue) {
+  if (langValue === 'python3') return pythonStarter;
+
+  // Extract function name from Python starter, e.g. "def two_sum(...)"
+  const fnMatch = pythonStarter?.match(/def\s+(\w+)\s*\(([^)]*)\)/);
+  const fnName = fnMatch ? fnMatch[1] : 'solution';
+  const params = fnMatch ? fnMatch[2].split(',').map(p => p.trim()).filter(Boolean) : ['args'];
+
+  switch (langValue) {
+    case 'cpp': {
+      const cppParams = params.map(p => `auto ${p}`).join(', ');
+      return `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+using namespace std;
+
+// TODO: Implement your solution
+auto ${fnName}(${cppParams}) {
+    // Write your code here
+}
+
+int main() {
+    // Test your solution
+    return 0;
+}`;
+    }
+    case 'java': {
+      const javaParams = params.map(p => `Object ${p}`).join(', ');
+      return `import java.util.*;
+
+public class Main {
+    // TODO: Implement your solution
+    public static Object ${fnName}(${javaParams}) {
+        // Write your code here
+        return null;
+    }
+
+    public static void main(String[] args) {
+        // Test your solution
+    }
+}`;
+    }
+    case 'nodejs': {
+      const jsParams = params.join(', ');
+      return `// TODO: Implement your solution
+function ${fnName}(${jsParams}) {
+    // Write your code here
+}
+
+// Test your solution
+// console.log(${fnName}());`;
+    }
+    default:
+      return pythonStarter;
+  }
+}

@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { signOut } from "next-auth/react";
 import axios from "axios";
-import Carousel from "react-multi-carousel";
-import "react-multi-carousel/lib/styles.css";
-
-export const dynamic = 'force-dynamic';
 
 export default function ProfileSection() {
   const [data, setData] = useState({});
+  const [stats, setStats] = useState(null);
+  const [totalProblems, setTotalProblems] = useState({ Easy: 0, Medium: 0, Hard: 0 });
 
   async function fetchUserInfo() {
     try {
@@ -20,46 +19,51 @@ export default function ProfileSection() {
     }
   }
 
+  async function fetchStats() {
+    try {
+      const res = await fetch("/api/getUserStats");
+      const data = await res.json();
+      if (data.ok) setStats(data.stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }
+
+  async function fetchTotalProblems() {
+    try {
+      const res = await fetch("/api/getAllProblems");
+      const problems = await res.json();
+      const counts = { Easy: 0, Medium: 0, Hard: 0 };
+      problems.forEach(p => {
+        if (counts[p.difficulty] !== undefined) counts[p.difficulty]++;
+      });
+      setTotalProblems(counts);
+    } catch (error) {
+      console.error("Error fetching problems:", error);
+    }
+  }
+
   useEffect(() => {
     fetchUserInfo();
+    fetchStats();
+    fetchTotalProblems();
   }, []);
 
-  const [userInfo] = useState({
-    username: "sultan",
-    rankings: {
-      problems: {
-        total: 50,
-        solved: 30,
-        easy: { total: 20, solved: 15 },
-        medium: { total: 20, solved: 10 },
-        tough: { total: 10, solved: 5 },
-      },
-    },
-    badges: [
-      { name: "Guardian", image: "/guardian.jpeg" },
-      { name: "January", image: "/january.jpg" },
-      { name: "June", image: "/june.png" },
-      { name: "July", image: "/july.png" },
-      { name: "Knight", image: "/knight_badge.png" },
-      { name: "Soldier", image: "/soldier.png" },
-    ],
-    skills: {
-      Advanced: [
-        { name: "Dynamic Programming", count: 1 },
-        { name: "Divide and Conquer", count: 1 },
-      ],
-      Intermediate: [
-        { name: "Hash Table", count: 2 },
-        { name: "Math", count: 2 },
-        { name: "Depth-First Search", count: 3 },
-      ],
-      Fundamental: [
-        { name: "Array", count: 4 },
-        { name: "String", count: 2 },
-        { name: "Sorting", count: 1 },
-      ],
-    },
-  });
+  // Use pre-computed unique problem counts per difficulty from backend
+  const solvedByDifficulty = stats?.solvedByDifficulty || { Easy: 0, Medium: 0, Hard: 0 };
+
+  // Build skills from solved categories
+  const skills = { Advanced: [], Intermediate: [], Fundamental: [] };
+  if (stats?.solvedCategories) {
+    Object.entries(stats.solvedCategories).forEach(([cat, data]) => {
+      const count = data.accepted || 0;
+      if (count === 0) return;
+      const difficulty = data.difficulty || 'Easy';
+      if (difficulty === 'Hard') skills.Advanced.push({ name: cat, count });
+      else if (difficulty === 'Medium') skills.Intermediate.push({ name: cat, count });
+      else skills.Fundamental.push({ name: cat, count });
+    });
+  }
 
   /* Info rows for the profile card */
   const infoRows = [
@@ -69,13 +73,10 @@ export default function ProfileSection() {
     { label: "City", value: data.city },
     { label: "Country", value: data.country },
     { label: "Rating", value: data.rating },
-    { label: "Amount", value: data.amount },
   ];
 
-  const totalSolved =
-    userInfo.rankings.problems.easy.solved +
-    userInfo.rankings.problems.medium.solved +
-    userInfo.rankings.problems.tough.solved;
+  const totalSolved = stats?.problemsSolved || 0;
+  const accuracy = stats ? Math.round((stats.accuracy || 0) * 100) : 0;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-10 min-h-screen">
@@ -114,33 +115,38 @@ export default function ProfileSection() {
               >
                 Edit Profile
               </Link>
-              <Link
-                href="/login"
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="bg-light-3 dark:bg-dark-4 hover:bg-light-4 dark:hover:bg-dark-2 text-dark-1 dark:text-light-1 font-semibold py-2.5 px-4 rounded-xl text-center text-sm transition-colors duration-300"
               >
                 Logout
-              </Link>
+              </button>
             </div>
           </div>
 
           {/* Skills Card */}
           <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-300">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Skills</h3>
-            {Object.entries(userInfo.skills).map(([category, skills]) => (
-              <div key={category} className="mb-4 last:mb-0">
-                <h4 className="text-sm font-semibold text-accent mb-1.5">{category}</h4>
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill, index) => (
-                    <span
-                      key={index}
-                      className="text-xs bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-4 px-3 py-1.5 rounded-full border border-light-4 dark:border-dark-4"
-                    >
-                      {skill.name} <span className="text-accent font-semibold">×{skill.count}</span>
-                    </span>
-                  ))}
+            {Object.entries(skills).map(([category, skillList]) => (
+              skillList.length > 0 && (
+                <div key={category} className="mb-4 last:mb-0">
+                  <h4 className="text-sm font-semibold text-accent mb-1.5">{category}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {skillList.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="text-xs bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-4 px-3 py-1.5 rounded-full border border-light-4 dark:border-dark-4"
+                      >
+                        {skill.name} <span className="text-accent font-semibold">×{skill.count}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             ))}
+            {Object.values(skills).every(s => s.length === 0) && (
+              <p className="text-sm text-gray-1 dark:text-gray-2">Solve problems to build your skill profile</p>
+            )}
           </div>
         </div>
 
@@ -164,49 +170,47 @@ export default function ProfileSection() {
 
               {/* Progress bars */}
               <div className="flex-grow w-full space-y-3">
-                <ProgressBar label="Easy" solved={userInfo.rankings.problems.easy.solved} total={userInfo.rankings.problems.easy.total} color="bg-green-500" />
-                <ProgressBar label="Medium" solved={userInfo.rankings.problems.medium.solved} total={userInfo.rankings.problems.medium.total} color="bg-yellow-500" />
-                <ProgressBar label="Tough" solved={userInfo.rankings.problems.tough.solved} total={userInfo.rankings.problems.tough.total} color="bg-accent" />
+                <ProgressBar label="Easy" solved={solvedByDifficulty.Easy} total={totalProblems.Easy} color="bg-green-500" />
+                <ProgressBar label="Medium" solved={solvedByDifficulty.Medium} total={totalProblems.Medium} color="bg-yellow-500" />
+                <ProgressBar label="Hard" solved={solvedByDifficulty.Hard} total={totalProblems.Hard} color="bg-accent" />
               </div>
             </div>
+            {stats && (
+              <div className="mt-4 pt-4 border-t border-light-4 dark:border-dark-4 flex flex-wrap gap-4 text-sm text-gray-1 dark:text-gray-2">
+                <span>Accuracy: <strong className="text-dark-1 dark:text-light-1">{accuracy}%</strong></span>
+                <span>Submissions: <strong className="text-dark-1 dark:text-light-1">{stats.totalSubmissions}</strong></span>
+                <span>Accepted: <strong className="text-dark-1 dark:text-light-1">{stats.totalAccepted}</strong></span>
+              </div>
+            )}
           </div>
 
           {/* Badges Card */}
           <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-400">
-            <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Badges</h3>
-            <Carousel
-              additionalTransfrom={0}
-              arrows
-              autoPlaySpeed={3000}
-              centerMode={true}
-              containerClass="carousel-container"
-              draggable
-              focusOnSelect={false}
-              infinite
-              keyBoardControl
-              minimumTouchDrag={80}
-              renderButtonGroupOutside={true}
-              renderDotsOutside={false}
-              responsive={{
-                desktop: { breakpoint: { max: 3000, min: 1024 }, items: 3, partialVisibilityGutter: 40 },
-                tablet: { breakpoint: { max: 1024, min: 464 }, items: 2, partialVisibilityGutter: 30 },
-                mobile: { breakpoint: { max: 464, min: 0 }, items: 1, partialVisibilityGutter: 30 },
-              }}
-              showDots={false}
-              slidesToSlide={1}
-              swipeable
-            >
-              {userInfo.badges.map((badge, index) => (
-                <div key={index} className="flex flex-col justify-center items-center h-44 px-2">
-                  <img
-                    src={badge.image}
-                    alt={badge.name}
-                    className="w-28 h-28 object-contain rounded-full ring-2 ring-light-4 dark:ring-dark-4 hover:ring-accent transition-all duration-300"
-                  />
-                  <span className="mt-2 text-xs font-medium text-gray-1 dark:text-gray-2">{badge.name}</span>
+            <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Achievements</h3>
+            {(() => {
+              const badges = [];
+              if (totalSolved >= 1) badges.push({ icon: '🌱', name: 'First Solve', desc: 'Solved your first problem' });
+              if (totalSolved >= 5) badges.push({ icon: '⚡', name: 'Quick Learner', desc: 'Solved 5 problems' });
+              if (totalSolved >= 10) badges.push({ icon: '🔥', name: 'On Fire', desc: 'Solved 10 problems' });
+              if (totalSolved >= 25) badges.push({ icon: '💎', name: 'Diamond', desc: 'Solved 25 problems' });
+              if (solvedByDifficulty.Hard >= 1) badges.push({ icon: '🏔️', name: 'Mountain Climber', desc: 'Solved a Hard problem' });
+              if (solvedByDifficulty.Hard >= 5) badges.push({ icon: '🏆', name: 'Champion', desc: 'Solved 5 Hard problems' });
+              if (accuracy >= 80 && (stats?.totalSubmissions || 0) >= 5) badges.push({ icon: '🎯', name: 'Sharpshooter', desc: `${accuracy}% accuracy` });
+              if (Object.keys(stats?.solvedCategories || {}).length >= 3) badges.push({ icon: '🌍', name: 'Explorer', desc: '3+ categories solved' });
+
+              return badges.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {badges.map((b, i) => (
+                    <div key={i} className="flex flex-col items-center p-3 rounded-xl bg-light-3 dark:bg-dark-4 hover:ring-2 hover:ring-accent/40 transition-all" title={b.desc}>
+                      <span className="text-3xl mb-1">{b.icon}</span>
+                      <span className="text-xs font-medium text-dark-1 dark:text-light-1 text-center">{b.name}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </Carousel>
+              ) : (
+                <p className="text-sm text-gray-1 dark:text-gray-2">Solve your first problem to earn badges!</p>
+              );
+            })()}
           </div>
         </div>
       </div>

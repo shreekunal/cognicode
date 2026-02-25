@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./duo-studio.css";
 import Providers from "@/components/Providers";
 import LayoutShell from "@/components/shared/LayoutShell";
 

@@ -5,8 +5,10 @@ import ThemeDropdown from "../shared/ThemeDropdown";
 import CodeEditorWindow from "../shared/CodeEditorWindow";
 import OutputWindow from "../shared/OutputWindow";
 import CustomInput from "../shared/CustomInput";
+import CodeReview from "../CodeReview";
+import ComplexityAnalysis from "../ComplexityAnalysis";
 import Split from "react-split";
-import { languagesData, mockComments } from "@/constants";
+import { languagesData, mockComments, getStarterForLanguage } from "@/constants";
 import { AiOutlineFullscreen, AiOutlineFullscreenExit } from "react-icons/ai";
 import Timer from "../shared/Timer";
 import axios from "axios";
@@ -27,17 +29,24 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
   const [fontSize, setFontSize] = useState({ value: '14', label: '14px' });
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [clickedProblemId, setClickedProblemId] = useState(null);
+  const [activeTab, setActiveTab] = useState("output"); // "output" | "review" | "complexity"
+  const [currentProblem, setCurrentProblem] = useState(null);
 
   useEffect(() => {
     if (problems) {
-      problems.forEach((problem, index) => {
-        if (problem.id === params.id) {
-          setClickedProblemId(problem.id);
+      const problem = problems.find((p) => p.id === params.id);
+      if (problem) {
+        setClickedProblemId(problem.id);
+        setCurrentProblem(problem);
+        if (problem.testCases?.[0]?.input?.[0]) {
           setCustomInput(problem.testCases[0].input[0]);
         }
-      })
+        // Load problem-specific starter code for the current language
+        if (problem.starterCode) {
+          setCode(getStarterForLanguage(problem.starterCode, language.value));
+        }
+      }
     }
-
   }, [problems]);
 
   const handleFullScreen = () => {
@@ -58,13 +67,18 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
       setIsFullScreen(true);
     }
 
-    if (document.addEventListener) {
-      document.addEventListener("fullscreenchange", exitHandler);
-      document.addEventListener("webkitfullscreenchange", exitHandler);
-      document.addEventListener("mozfullscreenchange", exitHandler);
-      document.addEventListener("MSFullscreenChange", exitHandler);
-    }
-  }, [isFullScreen]);
+    document.addEventListener("fullscreenchange", exitHandler);
+    document.addEventListener("webkitfullscreenchange", exitHandler);
+    document.addEventListener("mozfullscreenchange", exitHandler);
+    document.addEventListener("MSFullscreenChange", exitHandler);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", exitHandler);
+      document.removeEventListener("webkitfullscreenchange", exitHandler);
+      document.removeEventListener("mozfullscreenchange", exitHandler);
+      document.removeEventListener("MSFullscreenChange", exitHandler);
+    };
+  }, []);
 
   const onChange = (action, data) => {
     switch (action) {
@@ -110,31 +124,117 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
 
   const handleSubmit = async () => {
     setIsCodeSubmitting(true);
-    const res = await fetch("/api/submitCode", {
-      method: "POST",
-      body: JSON.stringify({ code, problem: clickedProblemId, language: language.value }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/submitCode", {
+        method: "POST",
+        body: JSON.stringify({ code, problem: clickedProblemId, language: language.value }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
 
-    if (data.isAccepted == "accepted") {
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 5000);
-      setOutputDetails({ output: "Accepted", submitted: true, accepted: true });
-      setIsCodeSubmitting(false);
-    } else {
-      setOutputDetails({ output: data.output, submitted: true, accepted: false });
+      if (data.isAccepted === "accepted") {
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 5000);
+        setOutputDetails({ output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: true });
+      } else {
+        setOutputDetails({ output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: false });
+      }
+    } catch (error) {
+      setOutputDetails({ output: "Submission failed: " + error.message, submitted: true, accepted: false });
+    } finally {
       setIsCodeSubmitting(false);
     }
   }
+
+  const onLanguageChange = (lang) => {
+    const currentDefault = currentProblem?.starterCode
+      ? getStarterForLanguage(currentProblem.starterCode, language.value)
+      : mockComments[language.value];
+    if (code && code !== currentDefault) {
+      if (!window.confirm("Switching language will reset your code. Continue?")) return;
+    }
+    setLanguage(lang);
+    // Use problem-specific starter if available, otherwise generic template
+    if (currentProblem?.starterCode) {
+      setCode(getStarterForLanguage(currentProblem.starterCode, lang.value));
+    } else {
+      setCode(mockComments[lang.value]);
+    }
+  };
+
+  // Shared bottom panel with tabs
+  const renderBottomPanel = (additionalStyles = '') => (
+    <div className={`!w-full min-h-[30%] flex flex-col ${additionalStyles}`}>
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        {/* Tabs */}
+        <div className="flex gap-1 bg-light-3 dark:bg-dark-4 rounded-lg p-0.5">
+          {[
+            { key: "output", label: "Output" },
+            { key: "review", label: "AI Review" },
+            { key: "complexity", label: "Complexity" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                activeTab === tab.key
+                  ? "bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => handleCompile(customInput)}
+            disabled={!code}
+            className="px-4 py-2 bg-dark-4 dark:bg-dark-4 text-light-1 rounded-lg text-sm hover:bg-dark-1 dark:hover:bg-gray-1 transition-colors"
+          >
+            {isCodeRunning ? <Loader /> : "Run"}
+          </button>
+          {isForSubmission && (
+            <button
+              onClick={handleSubmit}
+              disabled={!code}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-light-1 rounded-lg text-sm transition-colors"
+            >
+              {isCodeSubmitting ? <Loader /> : "Submit"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-grow mt-2">
+        {activeTab === "output" && (
+          <div className="flex gap-5 flex-grow max-xs:flex-col">
+            <div className="!w-full flex flex-col">
+              <h1 className="font-bold text-lg">Custom Input</h1>
+              <CustomInput customInput={customInput} setCustomInput={setCustomInput} />
+            </div>
+            <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} />
+          </div>
+        )}
+        {activeTab === "review" && (
+          <CodeReview code={code} language={language.value} />
+        )}
+        {activeTab === "complexity" && (
+          <ComplexityAnalysis code={code} language={language.value} />
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-full flex flex-col">
       <div className="flex px-4 gap-2 justify-between max-md:mt-12 flex-wrap">
         <div className="flex gap-2 flex-wrap">
-          <LanguagesDropdown onSelectChange={(lang) => { setLanguage(lang); setCode(mockComments[lang.value]) }} />
+          <LanguagesDropdown onSelectChange={onLanguageChange} />
           <ThemeDropdown handleThemeChange={(th) => setTheme(th)} />
           <FontSizeDropdown onSelectChange={(f) => setFontSize(f)} />
         </div>
@@ -164,43 +264,10 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
           theme={theme.value}
           fontSize={fontSize.value}
         />
-
-        <div className="!w-full min-h-[30%] flex flex-col">
-          <div className="flex justify-end items-center gap-3">
-            <button
-              onClick={() => handleCompile(customInput)}
-              disabled={!code}
-              className={`px-4 py-2 bg-dark-4 dark:bg-dark-4 text-light-1 mt-2 rounded-lg text-sm hover:bg-dark-1 dark:hover:bg-gray-1 transition-colors`}
-            >
-              {isCodeRunning ? <Loader /> : "Run"}
-            </button>
-            {isForSubmission && (
-              <button
-                onClick={handleSubmit}
-                disabled={!code}
-                className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-light-1 mt-2 rounded-lg text-sm transition-colors`}
-              >
-                {isCodeSubmitting ? <Loader /> : "Submit"}
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-5 flex-grow">
-            <div className="!w-full flex flex-col">
-              <h1 className="font-bold text-lg">Custom Input</h1>
-              <CustomInput
-                customInput={customInput}
-                setCustomInput={setCustomInput}
-              />
-            </div>
-            <OutputWindow outputDetails={outputDetails} />
-          </div>
-        </div>
+        {renderBottomPanel()}
       </Split>
 
-      <div
-        className="!w-full flex-grow flex flex-col items-start px-4 pt-4 md:hidden max-md:w-[500px]"
-      >
+      <div className="!w-full flex-grow flex flex-col items-start px-4 pt-4 md:hidden max-md:w-[500px]">
         <CodeEditorWindow
           code={code}
           onChange={onChange}
@@ -208,38 +275,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
           theme={theme.value}
           fontSize={fontSize.value}
         />
-
-        <div className="!w-full min-h-[30%] flex flex-col">
-          <div className="flex justify-end items-center gap-3">
-            <button
-              onClick={() => handleCompile(customInput)}
-              disabled={!code}
-              className={`px-4 py-2 bg-dark-4 dark:bg-dark-4 text-light-1 mt-2 rounded-lg text-sm hover:bg-dark-1 dark:hover:bg-gray-1 transition-colors`}
-            >
-              {isCodeRunning ? <Loader /> : "Run"}
-            </button>
-            {isForSubmission && (
-              <button
-                onClick={handleSubmit}
-                disabled={!code}
-                className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-light-1 mt-2 rounded-lg text-sm transition-colors`}
-              >
-                {isCodeSubmitting ? <Loader /> : "Submit"}
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-5 flex-grow max-xs:flex-col">
-            <div className="!w-full flex flex-col max-xs:h-[250px]">
-              <h1 className="font-bold text-lg">Custom Input</h1>
-              <CustomInput
-                customInput={customInput}
-                setCustomInput={setCustomInput}
-              />
-            </div>
-            <OutputWindow outputDetails={outputDetails} additionalStyles={'max-md:h-[250px]'} />
-          </div>
-        </div>
+        {renderBottomPanel('max-md:min-h-[300px]')}
       </div>
     </div>
   );

@@ -8,10 +8,27 @@ import radon.complexity as radon_complexity
 import radon.metrics as radon_metrics
 import json
 import re
+import random
+import math
+from pymongo import MongoClient
+from urllib.parse import quote_plus
 
 load_dotenv()
 
-app = FastAPI(title="CogniCode AI Backend - Python Edition", version="2.0.0")
+app = FastAPI(title="CogniCode AI Backend - Python Edition", version="3.0.0")
+
+# MongoDB connection with error resilience
+MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/cognicode")
+try:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+    client.server_info()  # Force connection check
+    db = client.get_default_database() if "/" in MONGO_URI.split("://")[-1] else client["cognicode"]
+    problems_collection = db["problems"]
+    MONGO_CONNECTED = True
+except Exception as e:
+    print(f"[WARN] MongoDB connection failed: {e}. Recommendation engine will return fallback.")
+    problems_collection = None
+    MONGO_CONNECTED = False
 
 # CORS middleware for Next.js frontend
 app.add_middleware(
@@ -23,12 +40,31 @@ app.add_middleware(
 )
 
 
-# Request/Response Models
+# ─── Request/Response Models ────────────────────────────────────────────────
+
+class RecentSubmission(BaseModel):
+    problemId: Optional[str] = ""
+    category: Optional[str] = ""
+    difficulty: Optional[str] = "Easy"
+    status: Optional[str] = "pending"
+    time: Optional[str] = None
+    cpuTime: Optional[float] = None
+
+
 class UserStats(BaseModel):
     accuracy: Optional[float] = 0.0
+    recentWeightedAccuracy: Optional[float] = 0.0
     problemsSolved: Optional[int] = 0
     avgTime: Optional[float] = 0.0
-    lastDifficulty: Optional[str] = "medium"
+    lastDifficulty: Optional[str] = "Easy"
+    solvedProblemIds: Optional[List[str]] = []
+    solvedCategories: Optional[Dict[str, Any]] = {}
+    totalSubmissions: Optional[int] = 0
+    totalAccepted: Optional[int] = 0
+    recentDifficulty: Optional[str] = "Easy"
+    rating: Optional[int] = 50
+    recentSubmissions: Optional[List[RecentSubmission]] = []
+    stuckCategories: Optional[List[str]] = []
 
 
 class RecommendationRequest(BaseModel):
@@ -45,74 +81,399 @@ class ComplexityRequest(BaseModel):
     language: str
 
 
-# Health check
+# ─── Constants & Difficulty Mapping ──────────────────────────────────────────
+
+DIFFICULTY_RANK = {"Easy": 1, "Medium": 2, "Hard": 3}
+RANK_TO_DIFFICULTY = {1: "Easy", 2: "Medium", 3: "Hard"}
+
+
+# ─── Helper Functions ────────────────────────────────────────────────────────
+
+def truncate_description(text: str, max_len: int = 120) -> str:
+    """Truncate at word boundary, handle short strings gracefully."""
+    if not text:
+        return ""
+    text = text.strip()
+    if len(text) <= max_len:
+        return text
+    truncated = text[:max_len]
+    # Cut at last space to avoid breaking mid-word
+    last_space = truncated.rfind(' ')
+    if last_space > max_len * 0.5:
+        truncated = truncated[:last_space]
+    return truncated.rstrip('.,;:!? ') + "..."
+
+
+def compute_target_difficulty(stats: UserStats) -> tuple:
+    """Compute target difficulty from rating, recency-weighted accuracy, and avgTime.
+    Returns (target_rank: int, confidence: float, reason: str)
+    """
+    rating = stats.rating or 50
+    rw_acc = (stats.recentWeightedAccuracy or stats.accuracy or 0) * 100
+    avg_time = stats.avgTime or 0
+    problems_solved = stats.problemsSolved or 0
+
+    # Base difficulty from rating (0-100 scale)
+    if rating >= 80:
+        base_rank = 3  # Hard
+    elif rating >= 50:
+        base_rank = 2  # Medium
+    else:
+        base_rank = 1  # Easy
+
+    # Accuracy adjustment: recency-weighted accuracy is the primary signal
+    if rw_acc >= 85:
+        acc_boost = 0.5   # Push toward harder
+    elif rw_acc >= 65:
+        acc_boost = 0.0   # Stay same
+    elif rw_acc >= 40:
+        acc_boost = -0.3  # Slight pull toward easier
+    else:
+        acc_boost = -0.7  # Pull toward easier
+
+    # Speed bonus: fast solvers get a slight bump (avgTime in seconds)
+    speed_boost = 0.0
+    if avg_time > 0:
+        if avg_time < 0.5:
+            speed_boost = 0.3  # Very fast
+        elif avg_time < 1.0:
+            speed_boost = 0.1  # Fast
+        # Slow solvers don't get penalized — that's what accuracy handles
+
+    # Experience factor: very new users stay on Easy regardless
+    if problems_solved < 3:
+        exp_cap = 1  # Force Easy
+    elif problems_solved < 8:
+        exp_cap = 2  # Cap at Medium
+    else:
+        exp_cap = 3  # No cap
+
+    raw_rank = base_rank + acc_boost + speed_boost
+    target_rank = max(1, min(3, min(round(raw_rank), exp_cap)))
+    target_diff = RANK_TO_DIFFICULTY[target_rank]
+
+    confidence = min(1.0, problems_solved / 10)  # Low confidence for new users
+
+    reason_parts = []
+    if rw_acc >= 85:
+        reason_parts.append(f"Accuracy {rw_acc:.0f}% — excellent")
+    elif rw_acc >= 65:
+        reason_parts.append(f"Accuracy {rw_acc:.0f}% — solid")
+    elif rw_acc >= 40:
+        reason_parts.append(f"Accuracy {rw_acc:.0f}% — building up")
+    else:
+        reason_parts.append(f"Accuracy {rw_acc:.0f}% — focus on fundamentals")
+
+    if speed_boost > 0:
+        reason_parts.append("fast solver bonus")
+
+    reason = f"Target: {target_diff} ({', '.join(reason_parts)})"
+    return target_rank, confidence, reason
+
+
+def score_problem_serial(problem, stats, all_categories, solved_ids, max_order):
+    """Score a problem for the SERIAL recommendation type.
+    Prioritizes order sequence + difficulty progression."""
+    score = 0.0
+    p_order = problem.get("order", 0)
+    p_diff = problem.get("difficulty", "Easy")
+    p_rank = DIFFICULTY_RANK.get(p_diff, 1)
+    problems_solved = stats.problemsSolved or 0
+
+    # Base: earlier order = higher score (normalized 0-100)
+    if max_order > 0:
+        score += (1.0 - p_order / max_order) * 40
+
+    # Difficulty progression: should match where user is in their journey
+    if problems_solved < 5:
+        ideal_rank = 1  # Start with Easy
+    elif problems_solved < 15:
+        ideal_rank = 2  # Medium zone
+    else:
+        ideal_rank = 3  # Ready for anything
+
+    diff_gap = abs(p_rank - ideal_rank)
+    score += max(0, 30 - diff_gap * 15)  # 30 for perfect match, 15 for 1-off, 0 for 2-off
+
+    # Bonus for unsolved problems right after the last solved order
+    # (continuity reward)
+    solved_orders = set()
+    # We don't have solved orders directly, so use order proximity to problems_solved count
+    expected_next_order = problems_solved + 1
+    order_distance = abs(p_order - expected_next_order)
+    score += max(0, 20 - order_distance * 2)  # 20 for exact next, decays
+
+    # Small random jitter to avoid identical scores
+    score += random.uniform(0, 5)
+
+    return round(score, 2)
+
+
+def score_problem_accuracy(problem, stats, weak_category, unexplored_categories, stuck_categories, target_rank, confidence):
+    """Score a problem for the ACCURACY recommendation type.
+    Focuses on skill-appropriate difficulty + weak/unexplored topics."""
+    score = 0.0
+    p_diff = problem.get("difficulty", "Easy")
+    p_rank = DIFFICULTY_RANK.get(p_diff, 1)
+    p_cat = problem.get("category", "")
+    p_likes = problem.get("likes", 0)
+
+    # Difficulty match (most important signal): perfect match = 40 pts
+    diff_gap = abs(p_rank - target_rank)
+    score += max(0, 40 - diff_gap * 20)
+
+    # Weak category bonus: strongly prioritize the user's weakest area
+    if weak_category and p_cat == weak_category:
+        score += 25
+    # Unexplored category bonus: encourage breadth
+    elif p_cat in unexplored_categories:
+        score += 20
+
+    # Stuck penalty: if user is stuck in this category, lower priority
+    if p_cat in stuck_categories:
+        score -= 15
+
+    # Popularity bonus (mild): more liked problems tend to be better quality
+    score += min(10, p_likes * 0.3)
+
+    # Confidence scaling: when confidence is low (new user), weight difficulty match even more
+    if confidence < 0.5:
+        if diff_gap == 0:
+            score += 10  # Extra bonus for exact match when we're uncertain
+
+    # Small random jitter
+    score += random.uniform(0, 5)
+
+    return round(score, 2)
+
+
+def score_problem_challenge(problem, stats, unexplored_categories, stuck_categories, target_rank):
+    """Score a problem for the CHALLENGE recommendation type.
+    Prioritizes hard difficulty, popularity, unexplored topics."""
+    score = 0.0
+    p_diff = problem.get("difficulty", "Easy")
+    p_rank = DIFFICULTY_RANK.get(p_diff, 1)
+    p_cat = problem.get("category", "")
+    p_likes = problem.get("likes", 0)
+    companies = problem.get("companies", [])
+
+    # Difficulty: must be ABOVE user's target. Hard = best
+    if p_rank > target_rank:
+        score += 35  # Above target = challenge
+    elif p_rank == 3:
+        score += 30  # Hard is always good for challenge
+    elif p_rank == target_rank:
+        score += 10  # Same difficulty = not much of a challenge
+    else:
+        score -= 10  # Below target = not a challenge at all
+
+    # Popularity is king for challenge mode: community-endorsed hard problems
+    score += min(20, p_likes * 0.5)
+
+    # Unexplored category bonus: challenge in a new area
+    if p_cat in unexplored_categories:
+        score += 15
+
+    # Company tag bonus: problems asked at top companies are prestigious
+    if companies:
+        score += min(10, len(companies) * 3)
+
+    # Mild stuck penalty (less than accuracy — challenge is supposed to be hard)
+    if p_cat in stuck_categories:
+        score -= 5
+
+    # Small random jitter
+    score += random.uniform(0, 5)
+
+    return round(score, 2)
+
+
+def make_recommendation(problem, rec_type, reason, score=0):
+    """Build a recommendation dict from a problem document."""
+    pid = str(problem.get("id", ""))
+    return {
+        "type": rec_type,
+        "title": problem.get("title", "Problem"),
+        "difficulty": problem.get("difficulty", "Medium"),
+        "topic": problem.get("category", "Unknown"),
+        "reason": reason,
+        "problemId": pid,
+        "description": truncate_description(problem.get("problemStatement") or ""),
+        "order": problem.get("order", 0),
+        "likes": problem.get("likes", 0),
+        "companies": problem.get("companies", [])[:3],
+        "_score": score  # Internal: for debugging/logging
+    }
+
+
+# ─── Health Check ────────────────────────────────────────────────────────────
+
 @app.get("/")
 def health_check():
     return {
         "status": "healthy",
-        "version": "2.0.0",
-        "mode": "python-heuristics",
+        "version": "3.0.0",
+        "mode": "python-scoring-engine",
+        "mongoConnected": MONGO_CONNECTED,
         "features": ["recommendation", "code_review", "complexity_analysis"]
     }
 
 
-# 1. Next Question Recommendation
+# ─── 1. Recommendation Engine (Scoring-Based) ───────────────────────────────
+
 @app.post("/api/recommend")
 def recommend_next_question(request: RecommendationRequest):
-    """Recommend next question based on user performance using heuristics"""
-    
+    """Score-based recommendation engine with 3 distinct strategies:
+    1. Serial — next in difficulty-progressive order
+    2. Accuracy — skill-matched with weak-topic & stuck awareness
+    3. Challenge — stretch problem with popularity + prestige weighting
+    """
+
+    if not MONGO_CONNECTED or problems_collection is None:
+        return {
+            "fromAI": False,
+            "source": "fallback",
+            "recommendations": [],
+            "insights": None,
+            "error": "Database unavailable — please try again later"
+        }
+
     stats = request.userStats
-    accuracy_pct = stats.accuracy * 100
-    problems_solved = stats.problemsSolved
-    avg_time = stats.avgTime
-    
-    # Advanced heuristic algorithm
-    difficulty = "medium"
-    topic = "arrays"
-    reason = ""
-    
-    # Difficulty based on accuracy
-    if accuracy_pct < 50:
-        difficulty = "easy"
-        reason = f"Low accuracy ({accuracy_pct:.1f}%) - practice fundamentals"
-    elif accuracy_pct < 70:
-        difficulty = "medium"
-        reason = f"Moderate accuracy ({accuracy_pct:.1f}%) - continue building skills"
-    elif accuracy_pct < 85:
-        difficulty = "hard"
-        reason = f"Good accuracy ({accuracy_pct:.1f}%) - ready for challenges"
-    else:
-        difficulty = "hard"
-        reason = f"Excellent accuracy ({accuracy_pct:.1f}%) - tackle advanced problems"
-    
-    # Topic recommendation based on problem count
-    if problems_solved < 5:
-        topic = "arrays"
-    elif problems_solved < 10:
-        topic = "strings"
-    elif problems_solved < 15:
-        topic = "linked lists"
-    elif problems_solved < 20:
-        topic = "trees"
-    else:
-        topic = "dynamic programming"
-    
-    # Time-based adjustments
-    if avg_time and avg_time > 600:
-        reason += ". Take your time to understand concepts deeply."
-    elif avg_time and avg_time < 120:
-        reason += ". You're fast! Try more complex problems."
-    
+    solved_ids = set(stats.solvedProblemIds or [])
+    solved_categories = stats.solvedCategories or {}
+    stuck_categories = set(stats.stuckCategories or [])
+
+    try:
+        all_problems = list(problems_collection.find().sort("order", 1))
+    except Exception as e:
+        return {
+            "fromAI": False,
+            "source": "fallback",
+            "recommendations": [],
+            "insights": None,
+            "error": f"Database query failed: {str(e)}"
+        }
+
+    if not all_problems:
+        return {
+            "fromAI": False,
+            "source": "python-scoring-engine",
+            "recommendations": [],
+            "insights": None,
+            "error": "No problems available in database"
+        }
+
+    # Filter to unsolved problems
+    unsolved = [p for p in all_problems if str(p.get("id")) not in solved_ids]
+
+    if not unsolved:
+        return {
+            "fromAI": False,
+            "source": "python-scoring-engine",
+            "recommendations": [],
+            "insights": {"accuracy": round((stats.accuracy or 0) * 100, 1), "problemsSolved": stats.problemsSolved, "message": "You've solved all available problems!"},
+        }
+
+    # ── Compute shared context ──
+
+    all_categories = set(p.get("category") for p in all_problems if p.get("category"))
+    attempted_categories = set(solved_categories.keys())
+    unexplored_categories = all_categories - attempted_categories
+
+    # Find weakest category (lowest acceptance rate, min 2 attempts)
+    weak_category = None
+    lowest_rate = 1.0
+    for cat, data in solved_categories.items():
+        if isinstance(data, dict) and data.get("total", 0) >= 2:
+            rate = data.get("accepted", 0) / data["total"]
+            if rate < lowest_rate:
+                lowest_rate = rate
+                weak_category = cat
+
+    # Target difficulty from composite signal
+    target_rank, confidence, difficulty_reason = compute_target_difficulty(stats)
+    max_order = max((p.get("order", 0) for p in all_problems), default=1)
+
+    recommendations = []
+    used_problem_ids = set()
+
+    # ── Score & pick SERIAL ──
+    serial_scores = [
+        (p, score_problem_serial(p, stats, all_categories, solved_ids, max_order))
+        for p in unsolved
+    ]
+    serial_scores.sort(key=lambda x: x[1], reverse=True)
+
+    for p, sc in serial_scores:
+        pid = str(p.get("id"))
+        if pid not in used_problem_ids:
+            order_num = p.get("order", 0)
+            reason = f"Problem #{order_num} — next in your progression"
+            if stats.problemsSolved == 0:
+                reason = "Start your journey here — the first problem in the series"
+            recommendations.append(make_recommendation(p, "serial", reason, sc))
+            used_problem_ids.add(pid)
+            break
+
+    # ── Score & pick ACCURACY ──
+    accuracy_scores = [
+        (p, score_problem_accuracy(p, stats, weak_category, unexplored_categories, stuck_categories, target_rank, confidence))
+        for p in unsolved if str(p.get("id")) not in used_problem_ids
+    ]
+    accuracy_scores.sort(key=lambda x: x[1], reverse=True)
+
+    for p, sc in accuracy_scores:
+        pid = str(p.get("id"))
+        if pid not in used_problem_ids:
+            p_cat = p.get("category", "")
+            reason = difficulty_reason
+            if weak_category and p_cat == weak_category:
+                reason += f". Targets \"{weak_category}\" — your weakest area ({lowest_rate*100:.0f}% acceptance)"
+            elif p_cat in unexplored_categories:
+                reason += f". Explores \"{p_cat}\" — a new topic for you"
+            elif p_cat in stuck_categories:
+                reason += f". (Avoided stuck categories)"
+            recommendations.append(make_recommendation(p, "accuracy", reason, sc))
+            used_problem_ids.add(pid)
+            break
+
+    # ── Score & pick CHALLENGE ──
+    challenge_scores = [
+        (p, score_problem_challenge(p, stats, unexplored_categories, stuck_categories, target_rank))
+        for p in unsolved if str(p.get("id")) not in used_problem_ids
+    ]
+    challenge_scores.sort(key=lambda x: x[1], reverse=True)
+
+    # Pick from top 3 to add variety
+    top_challenges = challenge_scores[:3]
+    if top_challenges:
+        p, sc = random.choice(top_challenges)
+        pid = str(p.get("id"))
+        companies = p.get("companies", [])
+        likes = p.get("likes", 0)
+        reason = "Push your limits with this challenge"
+        if p.get("category") in unexplored_categories:
+            reason += f" in \"{p.get('category')}\" — a new topic for you"
+        if likes > 20:
+            reason += f" ({likes} community likes)"
+        if companies:
+            reason += f". Asked at: {', '.join(companies[:3])}"
+        recommendations.append(make_recommendation(p, "challenge", reason, sc))
+        used_problem_ids.add(pid)
+
     return {
         "fromAI": False,
-        "source": "python-heuristics",
-        "recommended": {
-            "difficulty": difficulty,
-            "title": f"Try a {difficulty} {topic} problem",
-            "topic": topic,
-            "reason": reason,
-            "problemsSolved": problems_solved,
-            "nextMilestone": (problems_solved // 5 + 1) * 5
+        "source": "python-scoring-engine",
+        "recommendations": recommendations,
+        "insights": {
+            "accuracy": round((stats.accuracy or 0) * 100, 1),
+            "recentAccuracy": round((stats.recentWeightedAccuracy or stats.accuracy or 0) * 100, 1),
+            "problemsSolved": stats.problemsSolved,
+            "weakCategory": weak_category,
+            "unexploredTopics": list(unexplored_categories)[:5],
+            "targetDifficulty": RANK_TO_DIFFICULTY.get(target_rank, "Medium"),
+            "stuckCategories": list(stuck_categories),
+            "confidence": round(confidence, 2),
         }
     }
 
@@ -129,6 +490,8 @@ def review_code(request: CodeReviewRequest):
     
     code = request.code
     language = request.language.lower()
+    # Normalize language aliases
+    if language in ("python3", "python2"): language = "python"
     
     # Python-specific analysis
     if language == "python":
@@ -164,10 +527,9 @@ def review_code(request: CodeReviewRequest):
             pass
     
     # JavaScript-specific analysis
-    elif language in ["javascript", "js"]:
+    elif language in ["javascript", "js", "nodejs"]:
         if "var " in code:
             style.append("Use 'let' or 'const' instead of 'var'")
-        # Find loose equality (==) that isn't strict (===)
         if re.search(r'(?<!=)==(?!=)', code):
             bugs.append("Use '===' instead of '==' for strict equality")
         if re.search(r'function\s+\w+\s*\(', code):
@@ -178,6 +540,101 @@ def review_code(request: CodeReviewRequest):
             best_practices.append("Remove console.log() statements before production")
         if re.search(r'\+\s*["\']|["\']\s*\+', code):
             performance.append("Consider using template literals instead of string concatenation")
+
+    # C++-specific analysis
+    elif language in ["cpp", "c++", "cxx"]:
+        # Bug checks
+        if "new " in code and "delete" not in code:
+            bugs.append("Memory allocated with 'new' but no 'delete' found — potential memory leak")
+        if re.search(r'(char|int|float|double)\s+\w+\s*;(?!\s*=)', code):
+            bugs.append("Uninitialized variable(s) detected — always initialize variables")
+        if re.search(r'gets\s*\(', code):
+            bugs.append("Never use gets() — it has no bounds checking. Use fgets() or getline()")
+        if re.search(r'sprintf\s*\(', code):
+            bugs.append("Consider snprintf() instead of sprintf() to prevent buffer overflows")
+        if "using namespace std;" in code and code.count("namespace") == 1:
+            style.append("Avoid 'using namespace std;' in headers — prefer std:: prefix")
+        # Style
+        if re.search(r'#define\s+\w+\s+\d+', code):
+            style.append("Prefer 'constexpr' or 'const' over #define for constants in C++")
+        if re.search(r'NULL', code):
+            style.append("Use 'nullptr' instead of 'NULL' in C++11 and later")
+        if re.search(r'printf\s*\(', code) and '#include <iostream>' in code:
+            style.append("Prefer cout/cerr over printf() in C++ for type safety")
+        # Performance
+        if re.search(r'push_back\s*\(', code) and "reserve" not in code:
+            performance.append("Consider vector::reserve() before multiple push_back() calls")
+        if re.search(r'(string|vector)\s+\w+\s*=\s*\w+', code) and "const &" not in code and "const&" not in code:
+            performance.append("Pass large objects by const reference to avoid copies")
+        if re.search(r'\.size\(\)\s*>\s*0', code):
+            performance.append("Use .empty() instead of .size() > 0 for readability and efficiency")
+        # Best practices
+        if "malloc" in code or "free(" in code:
+            best_practices.append("In C++, prefer new/delete or smart pointers over malloc/free")
+        if "raw pointer" not in code and re.search(r'\w+\s*\*\s+\w+\s*=\s*new', code):
+            best_practices.append("Consider using smart pointers (unique_ptr/shared_ptr) instead of raw pointers")
+        if "#include <bits/stdc++.h>" in code:
+            best_practices.append("Avoid #include <bits/stdc++.h> — it's non-standard and slows compilation")
+
+    # Java-specific analysis
+    elif language == "java":
+        # Bug checks
+        if re.search(r'\.equals\s*\(\s*null\s*\)', code):
+            bugs.append("Calling .equals(null) will never be true — use == null instead")
+        if re.search(r'catch\s*\(\s*Exception\s+\w+\s*\)\s*\{?\s*\}', code):
+            bugs.append("Empty catch block silently swallows exceptions — at least log the error")
+        if re.search(r'==\s*"', code) or re.search(r'"\s*==', code):
+            bugs.append("Use .equals() for String comparison, not ==")
+        # Style
+        if re.search(r'class\s+[a-z]', code):
+            style.append("Class names should start with uppercase (PascalCase)")
+        if re.search(r'(private|public|protected)\s+\w+\s+[A-Z]', code):
+            pass  # correct naming
+        if re.search(r'System\.out\.print', code):
+            best_practices.append("Consider using a logging framework instead of System.out.println()")
+        if "instanceof" in code and "pattern" not in code.lower():
+            style.append("Consider using polymorphism instead of instanceof checks")
+        # Performance
+        if re.search(r'String\s+\w+\s*=\s*""', code) and "+=" in code:
+            performance.append("Use StringBuilder instead of String concatenation with +=")
+        if re.search(r'new\s+ArrayList\s*<>', code) and "initialCapacity" not in code:
+            performance.append("Consider specifying initial capacity for ArrayList if size is known")
+        if "synchronized" in code:
+            performance.append("Review synchronized blocks — consider java.util.concurrent utilities")
+        # Best practices
+        if re.search(r'public\s+\w+\s+\w+\s*;', code) and "final" not in code:
+            best_practices.append("Consider making fields private with getters/setters")
+        if "throws Exception" in code:
+            best_practices.append("Avoid throwing generic Exception — use specific exception types")
+
+    # C-specific analysis
+    elif language == "c":
+        # Bug checks
+        if re.search(r'malloc\s*\(', code) and "free" not in code:
+            bugs.append("Memory allocated with malloc() but no free() found — potential memory leak")
+        if re.search(r'gets\s*\(', code):
+            bugs.append("Never use gets() — use fgets() instead to prevent buffer overflow")
+        if re.search(r'scanf\s*\(\s*"%s"', code):
+            bugs.append("scanf(\"%s\") has no bounds — use fgets() or specify width: scanf(\"%99s\")")
+        if re.search(r'(int|char|float|double)\s+\w+\s*;(?!\s*=)', code):
+            bugs.append("Uninitialized variable(s) — always initialize variables in C")
+        if re.search(r'sprintf\s*\(', code):
+            bugs.append("Use snprintf() instead of sprintf() to prevent buffer overflows")
+        # Style
+        if re.search(r'#define\s+\w+\s+\d+', code):
+            style.append("Consider using enum or const for numeric constants")
+        if len([line for line in code.split('\n') if len(line) > 80]) > 0:
+            style.append("Some lines exceed 80 characters")
+        # Performance
+        if re.search(r'strlen\s*\(', code) and re.search(r'for|while', code):
+            performance.append("Cache strlen() result — calling it in a loop is O(n) each time")
+        if re.search(r'realloc\s*\(', code):
+            performance.append("Cache realloc() result in a temp variable to avoid memory leaks on failure")
+        # Best practices
+        if "goto " in code:
+            best_practices.append("Avoid goto — use structured control flow")
+        if re.search(r'void\s+main', code):
+            best_practices.append("main() should return int, not void")
     
     # Generic checks for all languages
     if re.search(r'TODO|FIXME|HACK', code, re.IGNORECASE):
@@ -212,6 +669,8 @@ def analyze_complexity(request: ComplexityRequest):
     
     code = request.code
     language = request.language.lower()
+    # Normalize language aliases
+    if language in ("python3", "python2"): language = "python"
     
     # Static analysis for Python
     static_analysis = None
@@ -241,8 +700,12 @@ def analyze_complexity(request: ComplexityRequest):
     explanation = ""
     suggestions = []
     
-    # Count nested loops
-    nested_loops = len(re.findall(r'for.*:.*for', code.replace('\n', ' ')))
+    # Count nested loops (Python-style with : and C-style with { )
+    code_flat = code.replace('\n', ' ')
+    nested_loops = max(
+        len(re.findall(r'for.*:.*for', code_flat)),
+        len(re.findall(r'for\s*\(.*\)\s*\{[^}]*for\s*\(', code_flat))
+    )
     if nested_loops >= 2:
         time_complexity = "O(n³)"
         explanation = "Triple nested loops detected"
@@ -279,7 +742,7 @@ def analyze_complexity(request: ComplexityRequest):
                 suggestions.append("Consider memoization or dynamic programming to optimize recursion")
                 suggestions.append("Analyze the recursion tree depth and branching factor")
                 break
-    elif language in ["javascript", "js"]:
+    elif language in ["javascript", "js", "nodejs"]:
         func_names = re.findall(r'function (\w+)\s*\(', code)
         for func_name in func_names:
             parts = code.split('function ' + func_name, 1)
@@ -298,9 +761,23 @@ def analyze_complexity(request: ComplexityRequest):
                     explanation = f"Recursive function '{func_name}' detected"
                     suggestions.append("Consider memoization to cache results")
                     break
+    elif language in ["cpp", "c++", "cxx", "c", "java"]:
+        # Match C/C++/Java function definitions: returnType funcName(...)
+        func_names = re.findall(r'(?:void|int|long|float|double|bool|string|auto|char|Object|String|List|Map)\s+(\w+)\s*\(', code)
+        for func_name in func_names:
+            if func_name in ("main", "Main"):
+                continue
+            # Count occurrences of funcName( in the code (definition + call = recursion)
+            occurrences = len(re.findall(re.escape(func_name) + r'\s*\(', code))
+            if occurrences >= 2:
+                time_complexity = f"O(2ⁿ) or better"
+                explanation = f"Recursive function '{func_name}' detected"
+                suggestions.append("Consider memoization or iterative approach to optimize recursion")
+                break
     
     # Space complexity analysis
-    if re.search(r'(\[\]|\{\}|new Array|new Object)', code):
+    ds_patterns = r'(\[\]|\{\}|new Array|new Object|new ArrayList|new HashMap|new HashSet|new Vector|vector<|map<|set<|unordered_map<|malloc\s*\()'
+    if re.search(ds_patterns, code):
         if nested_loops >= 1:
             space_complexity = "O(n²)"
             explanation += ". Creates auxiliary data structure in nested loop"
@@ -326,7 +803,8 @@ def analyze_complexity(request: ComplexityRequest):
 
 def analyze_code_static(code: str, language: str) -> Optional[Dict[str, Any]]:
     """Static analysis helper for Python code"""
-    if language.lower() != "python":
+    lang = language.lower()
+    if lang not in ("python", "python3", "python2"):
         return None
     
     try:

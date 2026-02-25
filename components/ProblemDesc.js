@@ -125,13 +125,8 @@ const ProblemDesc = ({ problems }) => {
 
                 {/* AI Recommendation Section */}
                 <div className='mt-6 px-5 py-4 border-t border-light-3 dark:border-dark-4'>
-                    <h2 className='font-bold mb-3'> AI-Powered Recommendation</h2>
                     <AIRecommendation
-                        userStats={{
-                            accuracy: 0.75,
-                            problemsSolved: 12,
-                            lastDifficulty: clickedProblems?.difficulty || 'Medium'
-                        }}
+                        currentDifficulty={clickedProblems?.difficulty || 'Medium'}
                     />
                 </div>
 
