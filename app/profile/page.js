@@ -184,6 +184,58 @@ export default function ProfileSection() {
             )}
           </div>
 
+          {/* Streak & Activity Card */}
+          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-300">
+            <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Activity</h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center p-3 bg-light-3 dark:bg-dark-4 rounded-xl">
+                <div className="text-2xl font-bold text-orange-500">{stats?.currentStreak || 0}</div>
+                <div className="text-xs text-gray-1 dark:text-gray-2 mt-1">Current Streak</div>
+              </div>
+              <div className="text-center p-3 bg-light-3 dark:bg-dark-4 rounded-xl">
+                <div className="text-2xl font-bold text-purple-500">{stats?.maxStreak || 0}</div>
+                <div className="text-xs text-gray-1 dark:text-gray-2 mt-1">Max Streak</div>
+              </div>
+              <div className="text-center p-3 bg-light-3 dark:bg-dark-4 rounded-xl">
+                <div className="text-2xl font-bold text-blue-500">{stats?.activeDays || 0}</div>
+                <div className="text-xs text-gray-1 dark:text-gray-2 mt-1">Active Days</div>
+              </div>
+            </div>
+            {/* Activity heatmap (last 30 days) */}
+            {stats?.activityMap && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-1 dark:text-gray-2 mb-2">Last 30 Days</h4>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from({ length: 30 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (29 - i));
+                    const key = d.toISOString().slice(0, 10);
+                    const count = stats.activityMap[key] || 0;
+                    const intensity = count === 0 ? 'bg-light-4 dark:bg-dark-4'
+                      : count <= 2 ? 'bg-green-200 dark:bg-green-900'
+                        : count <= 5 ? 'bg-green-400 dark:bg-green-700'
+                          : 'bg-green-600 dark:bg-green-500';
+                    return (
+                      <div
+                        key={key}
+                        className={`w-4 h-4 rounded-sm ${intensity}`}
+                        title={`${key}: ${count} submissions`}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                  <span>Less</span>
+                  <div className="w-3 h-3 rounded-sm bg-light-4 dark:bg-dark-4" />
+                  <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900" />
+                  <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-700" />
+                  <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-500" />
+                  <span>More</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Badges Card */}
           <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-400">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Achievements</h3>
@@ -197,6 +249,9 @@ export default function ProfileSection() {
               if (solvedByDifficulty.Hard >= 5) badges.push({ icon: '🏆', name: 'Champion', desc: 'Solved 5 Hard problems' });
               if (accuracy >= 80 && (stats?.totalSubmissions || 0) >= 5) badges.push({ icon: '🎯', name: 'Sharpshooter', desc: `${accuracy}% accuracy` });
               if (Object.keys(stats?.solvedCategories || {}).length >= 3) badges.push({ icon: '🌍', name: 'Explorer', desc: '3+ categories solved' });
+              if ((stats?.currentStreak || 0) >= 3) badges.push({ icon: '🔥', name: 'Streak Master', desc: `${stats.currentStreak}-day streak!` });
+              if ((stats?.currentStreak || 0) >= 7) badges.push({ icon: '💪', name: 'Week Warrior', desc: '7+ day streak' });
+              if ((stats?.maxStreak || 0) >= 14) badges.push({ icon: '⭐', name: 'Consistency King', desc: '14+ day max streak' });
 
               return badges.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

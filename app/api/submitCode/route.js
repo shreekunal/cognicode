@@ -33,24 +33,36 @@ export async function POST(req) {
             (solvedProblem) => solvedProblem.problem.equals(prob._id)
         );
 
-        // Run ALL test cases
-        const { executeCode } = await import('@/utils/pistonAPI');
-        let passedCount = 0;
+        // Run ALL test cases using batch execution (single API call)
+        const { executeCode, executeBatch } = await import('@/utils/pistonAPI');
         const totalTestCases = prob.testCases.length;
+
+        // Collect all inputs for batch — join multi-line inputs with newlines
+        const inputs = prob.testCases.map(tc => Array.isArray(tc.input) ? tc.input.join('\n') : (tc.input || ''));
+        const expectedOutputs = prob.testCases.map(tc => Array.isArray(tc.output) ? tc.output.join('\n') : (tc.output || ''));
+
+        let results;
+        try {
+            results = await executeBatch(language, code, inputs);
+        } catch (batchErr) {
+            // Fallback to sequential if batch fails
+            results = [];
+            for (const input of inputs) {
+                const data = await executeCode(language, code, input);
+                results.push(data);
+            }
+        }
+
+        let passedCount = 0;
         let lastOutput = '';
         let lastExecData = {};
 
         for (let i = 0; i < totalTestCases; i++) {
-            const tc = prob.testCases[i];
-            const input = tc.input?.[0] || '';
-            const expectedOutput = tc.output?.[0] || '';
-
-            const data = await executeCode(language, code, input);
+            const data = results[i] || { output: '', cpuTime: 0, memory: 0 };
             lastOutput = data.output;
             lastExecData = data;
 
-            // Trim whitespace for comparison to avoid false rejections
-            if (data.output?.trim() === expectedOutput.trim()) {
+            if (data.output?.trim() === expectedOutputs[i].trim()) {
                 passedCount++;
             }
         }

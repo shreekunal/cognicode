@@ -153,6 +153,16 @@ html.dark #duo-nav .part-2 a {
   transition: all ease-in 0.3s;
 }
 
+#duo-nav .part-2 a.duo-nav-active {
+  color: #dc2626;
+  border-bottom: #dc2626 1.7px solid;
+}
+
+html.dark #duo-nav .part-2 a.duo-nav-active {
+  color: #ef4444;
+  border-bottom: #ef4444 1.7px solid;
+}
+
 .duo-nav-icons {
   display: flex;
   align-items: center;

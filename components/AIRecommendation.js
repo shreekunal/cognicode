@@ -1,7 +1,8 @@
 'use client'
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { FiList, FiTarget, FiZap, FiAlertCircle, FiTrendingUp, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
+import { FiList, FiTarget, FiZap, FiAlertCircle, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
+import { BsStars } from 'react-icons/bs';
 
 export default function AIRecommendation({ currentDifficulty }) {
   const [loading, setLoading] = useState(false);
@@ -52,9 +53,9 @@ export default function AIRecommendation({ currentDifficulty }) {
   };
 
   const typeConfig = {
-    serial: { icon: FiList, label: 'Next in Sequence', accent: 'text-blue-600 dark:text-blue-400', border: 'border-l-blue-500' },
-    accuracy: { icon: FiTarget, label: 'Accuracy Based', accent: 'text-indigo-600 dark:text-indigo-400', border: 'border-l-indigo-500' },
-    challenge: { icon: FiZap, label: 'Challenge Mode', accent: 'text-amber-600 dark:text-amber-400', border: 'border-l-amber-500' },
+    serial: { icon: FiList, label: 'Next in Sequence', accent: 'text-blue-600 dark:text-blue-400' },
+    accuracy: { icon: FiTarget, label: 'Accuracy Based', accent: 'text-indigo-600 dark:text-indigo-400' },
+    challenge: { icon: FiZap, label: 'Challenge Mode', accent: 'text-amber-600 dark:text-amber-400' },
   };
 
   const hasResults = results.length > 0;
@@ -66,7 +67,7 @@ export default function AIRecommendation({ currentDifficulty }) {
       <Link
         key={index}
         href={`/problems/${rec.problemId}`}
-        className={`block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 border-l-4 ${config.border} p-3 hover:shadow-lg transition-all hover:border-blue-400 dark:hover:border-blue-500 group cursor-pointer ${fullWidth ? 'flex gap-6' : ''}`}
+        className={`block bg-light-1 dark:bg-dark-3 rounded-lg border border-light-4 dark:border-dark-4 p-3 hover:shadow-lg transition-all hover:border-gray-400 dark:hover:border-gray-500 group cursor-pointer ${fullWidth ? 'flex gap-6' : ''}`}
       >
         <div className={fullWidth ? 'flex-1' : ''}>
           <div className="flex items-start justify-between mb-1.5">
@@ -79,7 +80,7 @@ export default function AIRecommendation({ currentDifficulty }) {
             </span>
           </div>
 
-          <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-1 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
             {rec.title}
           </h4>
 
@@ -110,38 +111,25 @@ export default function AIRecommendation({ currentDifficulty }) {
   };
 
   return (
-    <div className="ai-recommendation rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="ai-recommendation rounded-lg border border-light-4 dark:border-dark-4 bg-light-1 dark:bg-dark-2 overflow-hidden">
       {/* Header bar — always visible */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-850 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-light-3 dark:bg-dark-4 border-b border-light-4 dark:border-dark-4">
         <button
           onClick={() => hasResults && setExpanded(!expanded)}
           className={`flex items-center gap-2 ${hasResults ? 'cursor-pointer' : 'cursor-default'}`}
         >
-          <FiTrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <BsStars className="w-4 h-4 text-red-500" />
           <span className="text-sm font-semibold text-gray-800 dark:text-white">AI-Powered Recommendation</span>
 
           {/* Insight chips inline */}
           {insights && (
             <div className="hidden sm:flex items-center gap-2 ml-3">
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
                 {insights.recentAccuracy ?? insights.accuracy}% acc
               </span>
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">
                 {insights.problemsSolved} solved
               </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium">
-                Target: {insights.targetDifficulty}
-              </span>
-              {insights.weakCategory && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">
-                  Weak: {insights.weakCategory}
-                </span>
-              )}
-              {insights.stuckCategories?.length > 0 && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-medium">
-                  Stuck: {insights.stuckCategories.join(', ')}
-                </span>
-              )}
             </div>
           )}
 
@@ -155,7 +143,7 @@ export default function AIRecommendation({ currentDifficulty }) {
             <button
               onClick={fetchRecommendation}
               disabled={loading}
-              className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition rounded-md hover:bg-blue-50 dark:hover:bg-gray-700 disabled:opacity-40"
+              className="p-1.5 text-gray-400 hover:text-dark-4 dark:hover:text-light-1 transition rounded-md hover:bg-light-4 dark:hover:bg-dark-3 disabled:opacity-40"
               title="Refresh recommendations"
             >
               <FiRefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -165,7 +153,7 @@ export default function AIRecommendation({ currentDifficulty }) {
             <button
               onClick={fetchRecommendation}
               disabled={loading}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center gap-1.5">

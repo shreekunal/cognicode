@@ -122,6 +122,68 @@ export async function GET() {
             recentWeightedAcc = wTotal > 0 ? wSum / wTotal : accuracy;
         }
 
+        // ─── Streak Calculation ─────────────────────────────────────────────
+        // A streak is consecutive days with at least one accepted submission
+        const acceptedDates = new Set();
+        for (const sub of allSubmissions) {
+            if (sub.status === 'accepted' && sub.time) {
+                const d = new Date(sub.time);
+                if (!isNaN(d)) acceptedDates.add(d.toISOString().slice(0, 10)); // 'YYYY-MM-DD'
+            }
+        }
+        let currentStreak = 0;
+        let maxStreak = 0;
+        if (acceptedDates.size > 0) {
+            // Walk backwards from today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let day = new Date(today);
+            // Check if today or yesterday has a submission (allow 1-day gap for "current" streak)
+            const todayStr = day.toISOString().slice(0, 10);
+            const yesterday = new Date(day); yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+            if (!acceptedDates.has(todayStr) && !acceptedDates.has(yesterdayStr)) {
+                currentStreak = 0;
+            } else {
+                // Start from today or yesterday
+                if (!acceptedDates.has(todayStr)) day = yesterday;
+                while (acceptedDates.has(day.toISOString().slice(0, 10))) {
+                    currentStreak++;
+                    day.setDate(day.getDate() - 1);
+                }
+            }
+
+            // Max streak from sorted dates
+            const sortedDates = Array.from(acceptedDates).sort();
+            let streak = 1;
+            maxStreak = 1;
+            for (let i = 1; i < sortedDates.length; i++) {
+                const prev = new Date(sortedDates[i - 1]);
+                const curr = new Date(sortedDates[i]);
+                const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+                if (diffDays === 1) {
+                    streak++;
+                    maxStreak = Math.max(maxStreak, streak);
+                } else {
+                    streak = 1;
+                }
+            }
+        }
+        // Activity heatmap: count submissions per day for last 30 days
+        const activityMap = {};
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        for (const sub of allSubmissions) {
+            if (sub.time) {
+                const d = new Date(sub.time);
+                if (!isNaN(d) && d >= thirtyDaysAgo) {
+                    const key = d.toISOString().slice(0, 10);
+                    activityMap[key] = (activityMap[key] || 0) + 1;
+                }
+            }
+        }
+
         return new Response(JSON.stringify({
             ok: true,
             stats: {
@@ -138,6 +200,10 @@ export async function GET() {
                 recentSubmissions,
                 stuckCategories,
                 solvedByDifficulty,
+                currentStreak,
+                maxStreak,
+                activeDays: acceptedDates.size,
+                activityMap,
             }
         }), { status: 200 });
 

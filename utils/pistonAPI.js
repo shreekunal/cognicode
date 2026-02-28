@@ -1,89 +1,134 @@
-// Piston API Helper - Free code execution API
-// Documentation: https://github.com/engineer-man/piston
+// OneCompiler API Helper - Code execution API
+// Documentation: https://onecompiler.com/apis/code-execution
 
-const PISTON_API_URL = 'https://emkc.org/api/v2/piston';
+const ONECOMPILER_API_URL = 'https://api.onecompiler.com/v1/run';
+const ONECOMPILER_API_KEY = process.env.ONECOMPILER_API_KEY;
 
-// Language mapping from JDoodle to Piston
+// Language mapping to OneCompiler language ids
 const languageMap = {
     'python3': 'python',
-    'cpp': 'c++',
+    'cpp': 'cpp',
     'java': 'java',
-    'nodejs': 'javascript'
+    'nodejs': 'javascript',
+    'c': 'c',
 };
 
+// File names per language
+function getFileName(language) {
+    const fileNames = {
+        'python': 'main.py',
+        'cpp': 'main.cpp',
+        'java': 'Main.java',
+        'javascript': 'main.js',
+        'c': 'main.c',
+    };
+    return fileNames[language] || 'main.txt';
+}
+
 /**
- * Execute code using Piston API
- * @param {string} language - Language identifier (python3, cpp, java, nodejs)
+ * Execute code using OneCompiler API
+ * @param {string} language - Language identifier (python3, cpp, java, nodejs, c)
  * @param {string} code - Source code to execute
  * @param {string} input - Standard input for the program
  * @returns {Promise<{output: string, cpuTime: number, memory: number, error?: string}>}
  */
 export async function executeCode(language, code, input = '') {
     try {
-        const pistonLanguage = languageMap[language] || language;
+        const ocLanguage = languageMap[language] || language;
 
-        const response = await fetch(`${PISTON_API_URL}/execute`, {
+        const response = await fetch(ONECOMPILER_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-API-Key': ONECOMPILER_API_KEY,
             },
             body: JSON.stringify({
-                language: pistonLanguage,
-                version: '*', // Use latest version
+                language: ocLanguage,
+                stdin: input,
                 files: [
                     {
-                        name: getFileName(pistonLanguage),
-                        content: code
+                        name: getFileName(ocLanguage),
+                        content: code,
                     }
                 ],
-                stdin: input,
-                args: [],
-                compile_timeout: 10000,
-                run_timeout: 3000,
-                compile_memory_limit: -1,
-                run_memory_limit: -1
-            })
+            }),
         });
-
-        if (!response.ok) {
-            throw new Error(`Piston API error: ${response.statusText}`);
-        }
 
         const result = await response.json();
 
-        // Format response to match previous API structure
+        if (result.status === 'failed') {
+            return {
+                output: result.error || 'Execution failed',
+                cpuTime: 0,
+                memory: 0,
+                error: result.error,
+            };
+        }
+
+        // Map OneCompiler response to our format
+        const hasError = result.exception || result.stderr;
         return {
-            output: result.run.stdout || result.run.stderr || '',
-            cpuTime: result.run.code === 0 ? 0.1 : 0, // Piston doesn't provide exact CPU time
-            memory: 0, // Piston doesn't provide memory usage in response
-            error: result.run.stderr || (result.run.code !== 0 ? result.run.output : null)
+            output: result.stdout || result.stderr || result.exception || '',
+            cpuTime: result.executionTime ? result.executionTime / 1000 : 0,
+            memory: result.memoryUsed || 0,
+            error: hasError ? (result.stderr || result.exception) : null,
         };
     } catch (error) {
-        console.error('Piston API execution error:', error);
+        console.error('OneCompiler API execution error:', error);
         throw error;
     }
 }
 
 /**
- * Get runtimes available in Piston
- * @returns {Promise<Array>}
+ * Execute code with multiple inputs (batch) using OneCompiler API
+ * @param {string} language - Language identifier
+ * @param {string} code - Source code
+ * @param {string[]} inputs - Array of stdin values
+ * @returns {Promise<Array>} - Array of execution results
  */
-export async function getRuntimes() {
+export async function executeBatch(language, code, inputs = []) {
     try {
-        const response = await fetch(`${PISTON_API_URL}/runtimes`);
-        return await response.json();
+        const ocLanguage = languageMap[language] || language;
+
+        const response = await fetch(ONECOMPILER_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': ONECOMPILER_API_KEY,
+            },
+            body: JSON.stringify({
+                language: ocLanguage,
+                stdin: inputs,
+                files: [
+                    {
+                        name: getFileName(ocLanguage),
+                        content: code,
+                    }
+                ],
+            }),
+        });
+
+        const results = await response.json();
+
+        // If batch, results is an array
+        if (Array.isArray(results)) {
+            return results.map(r => ({
+                output: r.stdout || r.stderr || r.exception || '',
+                cpuTime: r.executionTime ? r.executionTime / 1000 : 0,
+                memory: 0,
+                error: r.exception || r.stderr || null,
+            }));
+        }
+
+        // Single result fallback
+        return [{
+            output: results.stdout || results.stderr || results.exception || '',
+            cpuTime: results.executionTime ? results.executionTime / 1000 : 0,
+            memory: results.memoryUsed || 0,
+            error: results.exception || results.stderr || null,
+        }];
     } catch (error) {
-        console.error('Error fetching Piston runtimes:', error);
+        console.error('OneCompiler batch execution error:', error);
         throw error;
     }
-}
-
-function getFileName(language) {
-    const fileNames = {
-        'python': 'main.py',
-        'c++': 'main.cpp',
-        'java': 'Main.java',
-        'javascript': 'main.js'
-    };
-    return fileNames[language] || 'main.txt';
 }

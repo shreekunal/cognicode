@@ -10,6 +10,7 @@ import ComplexityAnalysis from "../ComplexityAnalysis";
 import Split from "react-split";
 import { languagesData, mockComments, getStarterForLanguage } from "@/constants";
 import { AiOutlineFullscreen, AiOutlineFullscreenExit } from "react-icons/ai";
+import { FiBookOpen, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import Timer from "../shared/Timer";
 import axios from "axios";
 import Loader from "../shared/Loader";
@@ -31,6 +32,11 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
   const [clickedProblemId, setClickedProblemId] = useState(null);
   const [activeTab, setActiveTab] = useState("output"); // "output" | "review" | "complexity"
   const [currentProblem, setCurrentProblem] = useState(null);
+  const [explanation, setExplanation] = useState(null);
+  const [explanationLoading, setExplanationLoading] = useState(false);
+
+  // localStorage key for persisting code per problem+language
+  const getStorageKey = (problemId, lang) => `cognicode_code_${problemId}_${lang}`;
 
   useEffect(() => {
     if (problems) {
@@ -38,16 +44,33 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
       if (problem) {
         setClickedProblemId(problem.id);
         setCurrentProblem(problem);
-        if (problem.testCases?.[0]?.input?.[0]) {
-          setCustomInput(problem.testCases[0].input[0]);
+        if (problem.testCases?.[0]?.input) {
+          const input = problem.testCases[0].input;
+          setCustomInput(Array.isArray(input) ? input.join('\n') : input);
         }
-        // Load problem-specific starter code for the current language
-        if (problem.starterCode) {
+        // Try to restore saved code from localStorage first
+        const savedCode = typeof window !== 'undefined'
+          ? localStorage.getItem(getStorageKey(problem.id, language.value))
+          : null;
+        if (savedCode) {
+          setCode(savedCode);
+        } else if (problem.starterCode) {
           setCode(getStarterForLanguage(problem.starterCode, language.value));
         }
       }
     }
   }, [problems]);
+
+  // Auto-save code to localStorage on change (debounced)
+  useEffect(() => {
+    if (!clickedProblemId || !code) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(getStorageKey(clickedProblemId, language.value), code);
+      } catch (e) { /* quota exceeded, ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [code, clickedProblemId, language.value]);
 
   const handleFullScreen = () => {
     if (isFullScreen) {
@@ -148,6 +171,33 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
     }
   }
 
+  const fetchExplanation = async () => {
+    if (!currentProblem || !code) return;
+    setExplanationLoading(true);
+    try {
+      const res = await fetch('/api/ai/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problemTitle: currentProblem.title || '',
+          problemStatement: (currentProblem.problemStatement || '').replace(/<[^>]*>/g, ''),
+          code,
+          language: language.value,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setExplanation(data);
+      } else {
+        setExplanation({ explanation: data.error || 'Failed to get explanation' });
+      }
+    } catch (e) {
+      setExplanation({ explanation: 'Error: ' + e.message });
+    } finally {
+      setExplanationLoading(false);
+    }
+  };
+
   const onLanguageChange = (lang) => {
     const currentDefault = currentProblem?.starterCode
       ? getStarterForLanguage(currentProblem.starterCode, language.value)
@@ -156,8 +206,13 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
       if (!window.confirm("Switching language will reset your code. Continue?")) return;
     }
     setLanguage(lang);
-    // Use problem-specific starter if available, otherwise generic template
-    if (currentProblem?.starterCode) {
+    // Try to restore saved code for new language first
+    const savedCode = clickedProblemId
+      ? localStorage.getItem(getStorageKey(clickedProblemId, lang.value))
+      : null;
+    if (savedCode) {
+      setCode(savedCode);
+    } else if (currentProblem?.starterCode) {
       setCode(getStarterForLanguage(currentProblem.starterCode, lang.value));
     } else {
       setCode(mockComments[lang.value]);
@@ -166,8 +221,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
 
   // Shared bottom panel with tabs
   const renderBottomPanel = (additionalStyles = '') => (
-    <div className={`!w-full min-h-[30%] flex flex-col ${additionalStyles}`}>
-      <div className="flex justify-between items-center flex-wrap gap-2">
+    <div className={`!w-full min-h-[30%] flex flex-col pt-3 overflow-y-auto ${additionalStyles}`}>
+      <div className="flex justify-between items-center flex-wrap gap-2 flex-shrink-0">
         {/* Tabs */}
         <div className="flex gap-1 bg-light-3 dark:bg-dark-4 rounded-lg p-0.5">
           {[
@@ -179,8 +234,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === tab.key
-                  ? "bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm"
-                  : "text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1"
+                ? "bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1"
                 }`}
             >
               {tab.label}
@@ -201,7 +256,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
             <button
               onClick={handleSubmit}
               disabled={!code}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-light-1 rounded-lg text-sm transition-colors"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-light-1 rounded-lg text-sm transition-colors"
             >
               {isCodeSubmitting ? <Loader /> : "Submit"}
             </button>
@@ -209,22 +264,66 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
         </div>
       </div>
 
-      <div className="flex-grow mt-2">
+      <div className="flex-grow mt-2 pb-6 overflow-y-auto">
         {activeTab === "output" && (
-          <div className="flex gap-5 flex-grow max-xs:flex-col">
-            <div className="!w-full flex flex-col">
-              <h1 className="font-bold text-lg">Custom Input</h1>
-              <CustomInput customInput={customInput} setCustomInput={setCustomInput} />
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-5 flex-grow max-xs:flex-col">
+              <div className="!w-full flex flex-col">
+                <h1 className="font-bold text-lg">Custom Input</h1>
+                <CustomInput customInput={customInput} setCustomInput={setCustomInput} />
+              </div>
+              <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} />
             </div>
-            <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} />
+            {/* Explain Solution button — shown after accepted submission */}
+            {outputDetails?.accepted && (
+              <div className="border-t border-light-4 dark:border-dark-4 pt-3">
+                {!explanation ? (
+                  <button
+                    onClick={fetchExplanation}
+                    disabled={explanationLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:bg-gray-400 transition-colors flex items-center gap-1.5"
+                  >
+                    <FiBookOpen className="inline" />{explanationLoading ? 'Analyzing...' : 'Explain My Solution'}
+                  </button>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5"><FiBookOpen /> Solution Explanation</h4>
+                    {explanation.explanation && (
+                      <p className="text-dark-1 dark:text-light-4">{explanation.explanation}</p>
+                    )}
+                    {(explanation.timeComplexity || explanation.spaceComplexity) && (
+                      <div className="flex gap-3">
+                        {explanation.timeComplexity && <span className="px-2 py-1 bg-light-3 dark:bg-dark-4 rounded text-xs">Time: <strong>{explanation.timeComplexity}</strong></span>}
+                        {explanation.spaceComplexity && <span className="px-2 py-1 bg-light-3 dark:bg-dark-4 rounded text-xs">Space: <strong>{explanation.spaceComplexity}</strong></span>}
+                        {explanation.isOptimal !== undefined && (
+                          <span className={`px-2 py-1 rounded text-xs ${explanation.isOptimal ? 'bg-light-3 dark:bg-dark-4 text-green-600 dark:text-green-400' : 'bg-light-3 dark:bg-dark-4 text-yellow-600 dark:text-yellow-400'}`}>
+                            {explanation.isOptimal ? <><FiCheckCircle className="inline mr-0.5" />Optimal</> : <><FiAlertTriangle className="inline mr-0.5" />Not optimal</>}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {explanation.optimalApproach && !explanation.isOptimal && (
+                      <div className="p-2 bg-light-3 dark:bg-dark-4 rounded">
+                        <strong>Optimal approach:</strong> {explanation.optimalApproach}
+                      </div>
+                    )}
+                    {explanation.keyTakeaway && (
+                      <div className="p-2 bg-light-3 dark:bg-dark-4 rounded">
+                        <strong>Key takeaway:</strong> {explanation.keyTakeaway}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
-        {activeTab === "review" && (
-          <CodeReview code={code} language={language.value} />
-        )}
-        {activeTab === "complexity" && (
-          <ComplexityAnalysis code={code} language={language.value} />
-        )}
+        <div className={activeTab !== "review" ? "hidden" : ""}>
+          <CodeReview code={code} language={language.value} autoFetch={activeTab === "review"} />
+        </div>
+        <div className={activeTab !== "complexity" ? "hidden" : ""}>
+          <ComplexityAnalysis code={code} language={language.value} autoFetch={activeTab === "complexity"} />
+        </div>
       </div>
     </div>
   );
@@ -252,7 +351,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
       </div>
 
       <Split
-        className="!w-full flex-grow flex flex-col items-start px-4 pt-4 max-md:hidden"
+        className="!w-full flex-grow flex flex-col items-start px-4 pt-4 pb-4 max-md:hidden"
         direction="vertical"
         minSize={100}
       >
@@ -266,7 +365,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
         {renderBottomPanel()}
       </Split>
 
-      <div className="!w-full flex-grow flex flex-col items-start px-4 pt-4 md:hidden max-md:w-[500px]">
+      <div className="!w-full flex-grow flex flex-col items-start px-4 pt-4 pb-4 md:hidden max-md:w-[500px]">
         <CodeEditorWindow
           code={code}
           onChange={onChange}

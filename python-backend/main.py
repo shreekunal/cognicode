@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -13,7 +13,22 @@ import math
 from pymongo import MongoClient
 from urllib.parse import quote_plus
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except Exception:
+    openai = None
+    OPENAI_AVAILABLE = False
+
 load_dotenv()
+
+# Configure LLM (supports OpenAI, Groq, or any OpenAI-compatible API)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")  # e.g. https://api.groq.com/openai/v1
+if OPENAI_AVAILABLE and OPENAI_API_KEY:
+    openai.api_key = OPENAI_API_KEY
+    if OPENAI_API_BASE:
+        openai.api_base = OPENAI_API_BASE
 
 app = FastAPI(title="CogniCode AI Backend - Python Edition", version="3.0.0")
 
@@ -81,10 +96,55 @@ class ComplexityRequest(BaseModel):
     language: str
 
 
+class HintRequest(BaseModel):
+    problemTitle: str
+    problemStatement: str
+    difficulty: str = "Medium"
+    code: Optional[str] = ""
+    language: Optional[str] = "python"
+    hintLevel: int = 1  # 1=gentle nudge, 2=approach hint, 3=strong hint
+
+
+class ExplainRequest(BaseModel):
+    problemTitle: str
+    problemStatement: str
+    code: str
+    language: str = "python"
+
+
 # ─── Constants & Difficulty Mapping ──────────────────────────────────────────
 
 DIFFICULTY_RANK = {"Easy": 1, "Medium": 2, "Hard": 3}
 RANK_TO_DIFFICULTY = {1: "Easy", 2: "Medium", 3: "Hard"}
+
+
+# ─── Rate Limiter ────────────────────────────────────────────────────────────
+import time as _time
+from collections import defaultdict
+
+class RateLimiter:
+    """Simple in-memory sliding-window rate limiter."""
+    def __init__(self, max_requests: int = 20, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window = window_seconds
+        self.requests: Dict[str, list] = defaultdict(list)
+
+    def is_allowed(self, key: str) -> bool:
+        now = _time.time()
+        # Purge old entries
+        self.requests[key] = [t for t in self.requests[key] if now - t < self.window]
+        if len(self.requests[key]) >= self.max_requests:
+            return False
+        self.requests[key].append(now)
+        return True
+
+    def remaining(self, key: str) -> int:
+        now = _time.time()
+        self.requests[key] = [t for t in self.requests[key] if now - t < self.window]
+        return max(0, self.max_requests - len(self.requests[key]))
+
+# Global rate limiter: 20 LLM calls per minute per IP
+llm_limiter = RateLimiter(max_requests=20, window_seconds=60)
 
 
 # ─── Helper Functions ────────────────────────────────────────────────────────
@@ -480,7 +540,7 @@ def recommend_next_question(request: RecommendationRequest):
 
 # 2. Code Review
 @app.post("/api/review")
-def review_code(request: CodeReviewRequest):
+def review_code(request: CodeReviewRequest, req: Request):
     """Review code using pattern matching and static analysis"""
     
     bugs: List[str] = []
@@ -490,8 +550,9 @@ def review_code(request: CodeReviewRequest):
     
     code = request.code
     language = request.language.lower()
-    # Normalize language aliases
-    if language in ("python3", "python2"): language = "python"
+    # Normalize python aliases
+    if language in ("python3", "python2"):
+        language = "python"
     
     # Python-specific analysis
     if language == "python":
@@ -648,7 +709,7 @@ def review_code(request: CodeReviewRequest):
     
     summary = f"Found {len(bugs)} potential bugs, {len(style)} style issues, {len(performance)} performance improvements"
     
-    return {
+    result = {
         "fromAI": False,
         "source": "python-pattern-matching",
         "review": {
@@ -661,10 +722,54 @@ def review_code(request: CodeReviewRequest):
         "staticAnalysis": static_analysis
     }
 
+    # If OpenAI client and key are present, also generate an LLM-powered review to augment heuristics
+    if OPENAI_AVAILABLE and OPENAI_API_KEY:
+        client_ip = req.client.host if req.client else "unknown"
+        if not llm_limiter.is_allowed(client_ip):
+            result["llmError"] = "Rate limit exceeded. Try again in a minute."
+        else:
+            try:
+                prompt = (
+                    f"You are a senior code reviewer. Provide a concise review of the following {language} code,\n"
+                    f"focusing on bugs, style, performance, and best practices. Return a JSON object with keys: bugs, style, performance, bestPractices, summary.\n\nCode:\n{code}\n"
+                )
+                resp = openai.ChatCompletion.create(
+                    model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+                    messages=[
+                        {"role": "system", "content": "You are a helpful code review assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=800,
+                    temperature=0.2,
+                )
+                txt = resp.choices[0].message.content.strip()
+                # Try to parse JSON out of model response
+                try:
+                    llm_json = json.loads(txt)
+                except Exception:
+                    # Try extracting JSON from markdown code block
+                    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', txt)
+                    if json_match:
+                        try:
+                            llm_json = json.loads(json_match.group(1).strip())
+                        except Exception:
+                            llm_json = {"raw": txt}
+                    else:
+                        llm_json = {"raw": txt}
+
+                result["llmReview"] = llm_json
+                result["fromAI"] = True
+                result["source"] = "python-pattern-matching+openai"
+            except Exception as e:
+                # Don't fail the endpoint if LLM call fails; include error note
+                result["llmError"] = str(e)
+
+    return result
+
 
 # 3. Complexity Analysis
 @app.post("/api/complexity")
-def analyze_complexity(request: ComplexityRequest):
+def analyze_complexity(request: ComplexityRequest, req: Request):
     """Analyze time and space complexity using pattern matching"""
     
     code = request.code
@@ -788,7 +893,7 @@ def analyze_complexity(request: ComplexityRequest):
     if not suggestions:
         suggestions.append("Code appears reasonably efficient")
     
-    return {
+    result = {
         "fromAI": False,
         "source": "python-pattern-analysis",
         "complexity": {
@@ -799,6 +904,152 @@ def analyze_complexity(request: ComplexityRequest):
         },
         "staticAnalysis": static_analysis
     }
+
+    # If OpenAI is available, augment with LLM complexity analysis
+    if OPENAI_AVAILABLE and OPENAI_API_KEY:
+        client_ip = req.client.host if req.client else "unknown"
+        if not llm_limiter.is_allowed(client_ip):
+            result["llmError"] = "Rate limit exceeded. Try again in a minute."
+        else:
+            try:
+                prompt = (
+                    f"Analyze the time and space complexity of the following {language} code.\n"
+                    f"Return a JSON object with keys: timeComplexity, spaceComplexity, explanation, optimizationSuggestions (array).\n"
+                    f"Be precise with Big-O notation. If there are multiple functions, analyze the main/dominant one.\n\nCode:\n{code}\n"
+                )
+                resp = openai.ChatCompletion.create(
+                    model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+                    messages=[
+                        {"role": "system", "content": "You are a computer science expert specializing in algorithm analysis. Always respond with valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=600,
+                    temperature=0.2,
+                )
+                txt = resp.choices[0].message.content.strip()
+                try:
+                    llm_json = json.loads(txt)
+                except Exception:
+                    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', txt)
+                    if json_match:
+                        try:
+                            llm_json = json.loads(json_match.group(1).strip())
+                        except Exception:
+                            llm_json = {"raw": txt}
+                    else:
+                        llm_json = {"raw": txt}
+
+                result["llmAnalysis"] = llm_json
+                result["fromAI"] = True
+                result["source"] = "python-pattern-analysis+openai"
+            except Exception as e:
+                result["llmError"] = str(e)
+
+    return result
+
+
+# ─── 4. LLM Hint Endpoint ────────────────────────────────────────────────────
+
+@app.post("/api/hint")
+def get_hint(request: HintRequest, req: Request):
+    """Generate progressive hints for a problem using LLM."""
+    if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="LLM not configured")
+
+    client_ip = req.client.host if req.client else "unknown"
+    if not llm_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a minute.")
+
+    level = max(1, min(3, request.hintLevel))
+    level_instructions = {
+        1: "Give a very gentle nudge. Mention ONE relevant data structure or technique name without explaining how to use it. Maximum 2 sentences.",
+        2: "Give a medium hint. Describe the general approach or algorithm pattern (e.g., 'use a hash map to track seen values') without writing any code. Maximum 3-4 sentences.",
+        3: "Give a strong hint. Describe the step-by-step approach in plain English. You may include pseudocode but NOT the actual solution code. Maximum 5-6 sentences.",
+    }
+
+    code_context = ""
+    if request.code and request.code.strip():
+        code_context = f"\n\nThe student's current code attempt ({request.language}):\n{request.code[:1500]}\n"
+
+    prompt = (
+        f"Problem: {request.problemTitle}\n"
+        f"Difficulty: {request.difficulty}\n"
+        f"Description: {request.problemStatement[:1000]}\n"
+        f"{code_context}\n"
+        f"Instructions: {level_instructions[level]}\n"
+        f"IMPORTANT: Do NOT give the complete solution. Do NOT write working code."
+    )
+
+    try:
+        resp = openai.ChatCompletion.create(
+            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            messages=[
+                {"role": "system", "content": "You are a helpful coding tutor. You give hints that guide students toward the solution without giving it away. Be encouraging."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.4,
+        )
+        hint_text = resp.choices[0].message.content.strip()
+        return {
+            "hint": hint_text,
+            "level": level,
+            "remaining": llm_limiter.remaining(client_ip),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── 5. LLM Solution Explanation Endpoint ────────────────────────────────────
+
+@app.post("/api/explain")
+def explain_solution(request: ExplainRequest, req: Request):
+    """Explain the optimal approach after a successful solve."""
+    if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="LLM not configured")
+
+    client_ip = req.client.host if req.client else "unknown"
+    if not llm_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a minute.")
+
+    prompt = (
+        f"Problem: {request.problemTitle}\n"
+        f"Description: {request.problemStatement[:1000]}\n\n"
+        f"Student's accepted solution ({request.language}):\n{request.code[:2000]}\n\n"
+        f"Provide:\n"
+        f"1. A brief explanation of what their solution does and its time/space complexity\n"
+        f"2. Whether this is the optimal approach. If not, describe the optimal approach\n"
+        f"3. Key takeaway or pattern to remember for similar problems\n\n"
+        f"Return JSON with keys: explanation, timeComplexity, spaceComplexity, isOptimal (bool), optimalApproach (string or null), keyTakeaway"
+    )
+
+    try:
+        resp = openai.ChatCompletion.create(
+            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            messages=[
+                {"role": "system", "content": "You are a computer science tutor explaining solutions. Always respond with valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=800,
+            temperature=0.3,
+        )
+        txt = resp.choices[0].message.content.strip()
+        try:
+            result = json.loads(txt)
+        except Exception:
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', txt)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(1).strip())
+                except Exception:
+                    result = {"explanation": txt}
+            else:
+                result = {"explanation": txt}
+
+        result["remaining"] = llm_limiter.remaining(client_ip)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def analyze_code_static(code: str, language: str) -> Optional[Dict[str, Any]]:

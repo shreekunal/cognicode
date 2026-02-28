@@ -2,17 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function DuoNav() {
     const { data: session } = useSession();
     const userID = session?.user?._id;
+    const pathname = usePathname();
 
     const [theme, setTheme] = useState("light");
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") || "light";
         setTheme(savedTheme);
+        // Apply dark class on initial load
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
     }, []);
 
     const toggleTheme = () => {
@@ -33,8 +41,8 @@ export default function DuoNav() {
                 <span>COGNICODE</span>
             </Link>
             <div className="part-2">
-                <h3><Link href={userID ? "/learn" : "/login"}>LEARN</Link></h3>
-                <h3><Link href={userID ? "/problems" : "/login"}>PROBLEMS</Link></h3>
+                <h3><Link href={userID ? "/learn" : "/login"} className={pathname?.startsWith("/learn") || pathname?.startsWith("/courses") ? "duo-nav-active" : ""}>LEARN</Link></h3>
+                <h3><Link href={userID ? "/problems" : "/login"} className={pathname?.startsWith("/problems") ? "duo-nav-active" : ""}>PROBLEMS</Link></h3>
             </div>
             <div className="duo-nav-icons">
                 <button onClick={toggleTheme} className="duo-theme-btn">

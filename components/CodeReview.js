@@ -1,10 +1,33 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiAlertOctagon, FiStar, FiZap, FiCheckCircle } from 'react-icons/fi';
 
-export default function CodeReview({ code, language }) {
+function ReviewSection({ title, icon, color, items }) {
+    if (!items || items.length === 0) return null;
+    return (
+        <div>
+            <h4 className={`font-semibold ${color}`}>{icon} {title}:</h4>
+            <ul className="list-disc ml-5 mt-1">
+                {items.map((item, i) => (
+                    <li key={i} className="text-sm">{item}</li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+export default function CodeReview({ code, language, autoFetch }) {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const hasFetched = useRef(false);
+
+    useEffect(() => {
+        if (autoFetch && !result && !loading && !hasFetched.current && code?.trim()) {
+            hasFetched.current = true;
+            fetchReview();
+        }
+    }, [autoFetch]);
 
     async function fetchReview() {
         if (!code || !code.trim()) {
@@ -30,98 +53,53 @@ export default function CodeReview({ code, language }) {
         }
     }
 
-    return (
-        <div className="code-review-panel p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-            <h3 className="text-lg font-semibold mb-3">AI Code Review</h3>
+    const hasLLM = result?.llmReview && !result?.llmError;
+    const reviewData = hasLLM ? result.llmReview : result?.review;
 
-            <button
-                onClick={fetchReview}
-                disabled={loading || !code}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-                {loading ? 'Analyzing...' : 'Review Code'}
-            </button>
+    return (
+        <div className="code-review-panel">
+            {!result && (
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">AI Code Review</h3>
+                    <button
+                        onClick={fetchReview}
+                        disabled={loading || !code}
+                        className="px-4 py-2 bg-dark-4 dark:bg-dark-4 text-light-1 rounded-lg hover:bg-dark-1 dark:hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm transition-colors"
+                    >
+                        {loading ? 'Analyzing...' : 'Review Code'}
+                    </button>
+                </div>
+            )}
+
+            {loading && (
+                <div className="text-sm text-gray-500 dark:text-gray-400">Analyzing your code...</div>
+            )}
 
             {error && (
-                <div className="mt-3 p-3 bg-red-100 text-red-700 rounded">
+                <div className="p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded text-sm">
                     Error: {error}
                 </div>
             )}
 
             {result && (
-                <div className="mt-4 space-y-3">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <strong>Source:</strong> {result.fromAI ? ' AI-Powered' : '📊 Static Analysis'}
-                    </div>
-
-                    {result.review && (
+                <div className="space-y-3">
+                    {reviewData && !reviewData.raw ? (
                         <div className="space-y-4">
-                            {result.review.bugs && result.review.bugs.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-red-600">🐛 Potential Bugs:</h4>
-                                    <ul className="list-disc ml-5 mt-1">
-                                        {result.review.bugs.map((bug, i) => (
-                                            <li key={i} className="text-sm">{bug}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {result.review.style && result.review.style.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-yellow-600">✨ Style Improvements:</h4>
-                                    <ul className="list-disc ml-5 mt-1">
-                                        {result.review.style.map((item, i) => (
-                                            <li key={i} className="text-sm">{item}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {result.review.performance && result.review.performance.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-orange-600">⚡ Performance:</h4>
-                                    <ul className="list-disc ml-5 mt-1">
-                                        {result.review.performance.map((item, i) => (
-                                            <li key={i} className="text-sm">{item}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {result.review.bestPractices && result.review.bestPractices.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-green-600">✅ Best Practices:</h4>
-                                    <ul className="list-disc ml-5 mt-1">
-                                        {result.review.bestPractices.map((item, i) => (
-                                            <li key={i} className="text-sm">{item}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {result.review.summary && (
-                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900 rounded">
-                                    <strong>Summary:</strong> {result.review.summary}
+                            <ReviewSection title="Potential Bugs" icon={<FiAlertOctagon className="inline" />} color="text-red-500 dark:text-red-400" items={reviewData.bugs} />
+                            <ReviewSection title="Style Improvements" icon={<FiStar className="inline" />} color="text-yellow-500 dark:text-yellow-400" items={reviewData.style} />
+                            <ReviewSection title="Performance" icon={<FiZap className="inline" />} color="text-orange-500 dark:text-orange-400" items={reviewData.performance} />
+                            <ReviewSection title="Best Practices" icon={<FiCheckCircle className="inline" />} color="text-green-500 dark:text-green-400" items={reviewData.bestPractices} />
+                            {reviewData.summary && (
+                                <div className="mt-2 p-3 bg-light-3 dark:bg-dark-4 rounded text-sm">
+                                    <strong>Summary:</strong> {reviewData.summary}
                                 </div>
                             )}
                         </div>
-                    )}
-
-                    {result.text && !result.review && (
-                        <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded whitespace-pre-wrap text-sm">
-                            {result.text}
+                    ) : reviewData?.raw ? (
+                        <div className="p-3 bg-light-3 dark:bg-dark-4 rounded whitespace-pre-wrap text-sm">
+                            {reviewData.raw}
                         </div>
-                    )}
-
-                    {result.staticAnalysis && (
-                        <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900 rounded text-sm">
-                            <strong>Static Analysis:</strong>
-                            <pre className="mt-1 text-xs overflow-auto">
-                                {JSON.stringify(result.staticAnalysis, null, 2)}
-                            </pre>
-                        </div>
-                    )}
+                    ) : null}
                 </div>
             )}
         </div>
