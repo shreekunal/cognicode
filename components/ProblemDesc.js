@@ -25,9 +25,9 @@ const ProblemDesc = ({ problems }) => {
     const [submissionsLoading, setSubmissionsLoading] = useState(false);
     const [expandedSubmission, setExpandedSubmission] = useState(null);
     const difficultyColors = {
-        'Hard': 'bg-red-500',
-        'Medium': 'bg-orange-500',
-        'Easy': 'bg-green-500'
+        'Hard': 'bg-red-700',
+        'Medium': 'bg-red-500',
+        'Easy': 'bg-red-300 text-red-900'
     };
 
     useEffect(() => {
@@ -41,18 +41,6 @@ const ProblemDesc = ({ problems }) => {
         }
 
     }, [problems]);
-
-    const handelLikedproblems = async () => {
-
-    }
-
-    const handelDisLikedproblems = async () => {
-
-    }
-
-    const handelFavoritesproblems = async () => {
-
-    }
 
     const fetchHint = async () => {
         if (hintLevel >= 3) return;
@@ -131,7 +119,7 @@ const ProblemDesc = ({ problems }) => {
                         </div>
                         {/*  Solved Section  */}
                         <div className='mx-2 cursor-pointer' >
-                            <TiInputChecked size={30} color={'green'} />
+                            <TiInputChecked size={30} className='text-red-500' />
                         </div>
                     </div>
                     {/* section 2 */}

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { FormSkeleton } from '@/components/shared/Skeleton';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,7 @@ const Form = () => {
       const data = response.data;
       setFormData(prev => ({ ...prev, ...data }));
     } catch (error) {
-      console.error("Error fetching user info:", error);
+      // silently fail — form still works
     }
   }
 
@@ -34,7 +36,6 @@ const Form = () => {
   const router = useRouter();
 
   const handleChange = (event) => {
-    console.log("Handle change called");
     setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
@@ -59,15 +60,6 @@ const Form = () => {
       }
     } finally {
       setIsLoading(false);
-      setFormData({
-        name: '',
-        age: '',
-        gender: '',
-        college: '',
-        city: '',
-        country: '',
-        phone: '',
-      });
     }
   };
 
@@ -108,6 +100,8 @@ const Form = () => {
           <option value="">Select Gender</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
+          <option value="Other">Other</option>
+          <option value="Prefer not to say">Prefer not to say</option>
         </select>
       </div>
       <input
@@ -159,9 +153,8 @@ const Form = () => {
 
       <button
         type="submit"
-        className="mb-4 bg-accent hover:bg-accent-dark text-center text-white px-4 py-2 rounded-xl disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        className="mb-4 bg-red-600 hover:bg-red-700 text-center text-white px-4 py-2 rounded-xl disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         disabled={formData.age === '' || formData.city === '' || formData.college === '' || formData.country === '' || formData.gender === '' || formData.name === '' || formData.phone === '' || isLoading}
-        onClick={handleSubmit}
       >
         {isLoading ? (
           <img src="loader.svg" alt="loading" className="w-6 h-6 object-contain mx-auto" />
@@ -173,11 +166,23 @@ const Form = () => {
 };
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) router.push('/login');
+  }, [session, status]);
+
+  if (status === 'loading') return <FormSkeleton />;
+  if (!session) return null;
+
   return (
     <div className="flex items-center justify-center mt-8 px-2">
       <div className="max-w-lg w-full">
-        <Link href="/profile" className='text-gray-1 dark:text-gray-2 hover:text-accent transition-colors'>⯇ Back</Link>
-        <h1 className="text-2xl font-bold my-4">Update Profile</h1>
+        <Link href="/profile" className='text-gray-1 dark:text-gray-2 hover:text-red-500 transition-colors'>⯇ Back</Link>
+        <h1 className="text-2xl font-bold my-4 dark:text-light-1">Update Profile</h1>
+        <div className="h-1 w-10 bg-red-500 rounded-full mb-4"></div>
         <Form />
       </div>
     </div>

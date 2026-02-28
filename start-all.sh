@@ -3,10 +3,10 @@
 # =============================================
 # CogniCode — Start All Servers
 # =============================================
-# Starts: Next.js  |  Express/Socket.io  |  Python AI Backend
+# Starts: Next.js  |  Python AI Backend
 #
 # Usage:
-#   ./start-all.sh          Start all 3 servers
+#   ./start-all.sh          Start all servers
 #   ./start-all.sh --stop   Stop all servers
 #   ./start-all.sh --status Check running servers
 # =============================================
@@ -22,7 +22,6 @@ NC='\033[0m' # No Color
 stop_servers() {
   echo -e "${RED}Stopping all servers...${NC}"
   pkill -f "next dev" 2>/dev/null
-  pkill -f "nodemon server.js" 2>/dev/null
   pkill -f "python3 main.py" 2>/dev/null
   echo -e "${GREEN}All servers stopped.${NC}"
 }
@@ -31,8 +30,6 @@ check_status() {
   echo -e "${BLUE}Server Status:${NC}"
   echo -n "  Next.js        : "
   pgrep -f "next dev" >/dev/null && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
-  echo -n "  Socket.io      : "
-  pgrep -f "nodemon server.js" >/dev/null && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
   echo -n "  Python Backend : "
   pgrep -f "python3 main.py" >/dev/null && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
 }
@@ -44,7 +41,7 @@ start_servers() {
   echo ""
 
   # ------ Python AI Backend ------
-  echo -e "${YELLOW}[1/3] Starting Python AI Backend (port 8000)...${NC}"
+  echo -e "${YELLOW}[1/2] Starting Python AI Backend (port 8000)...${NC}"
   cd "$ROOT_DIR/python-backend"
   if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
@@ -60,21 +57,8 @@ start_servers() {
     echo -e "${RED}    Run: cd python-backend && pip3 install -r requirements.txt --break-system-packages${NC}"
   fi
 
-  # ------ Express / Socket.io ------
-  echo -e "${YELLOW}[2/3] Starting Socket.io server...${NC}"
-  cd "$ROOT_DIR"
-  npx nodemon server.js &
-  NODE_PID=$!
-  sleep 1
-
-  if kill -0 $NODE_PID 2>/dev/null; then
-    echo -e "${GREEN}  ✓ Socket.io server running (PID: $NODE_PID)${NC}"
-  else
-    echo -e "${RED}  ✗ Socket.io server failed to start${NC}"
-  fi
-
   # ------ Next.js ------
-  echo -e "${YELLOW}[3/3] Starting Next.js dev server (port 3000)...${NC}"
+  echo -e "${YELLOW}[2/2] Starting Next.js dev server (port 3000)...${NC}"
   cd "$ROOT_DIR"
   npx next dev &
   NEXT_PID=$!
@@ -92,7 +76,6 @@ start_servers() {
   echo -e "${BLUE}==============================================${NC}"
   echo ""
   echo -e "  ${GREEN}Next.js${NC}          → http://localhost:3000"
-  echo -e "  ${GREEN}Socket.io${NC}        → (via server.js)"
   echo -e "  ${GREEN}Python Backend${NC}   → http://localhost:8000"
   echo ""
   echo -e "  Stop all:  ${YELLOW}./start-all.sh --stop${NC}"

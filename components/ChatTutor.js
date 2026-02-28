@@ -83,10 +83,11 @@ export default function ChatTutor() {
         table: ({ children }) => <div className="overflow-x-auto my-2"><table className="min-w-full border border-gray-600 text-xs">{children}</table></div>,
         th: ({ children }) => <th className="border border-gray-600 px-2 py-1 bg-gray-700 text-left font-semibold">{children}</th>,
         td: ({ children }) => <td className="border border-gray-600 px-2 py-1">{children}</td>,
-        code: ({ inline, className, children }) => {
+        code: ({ node, className, children, ...props }) => {
             const lang = className?.replace('language-', '') || '';
-            if (inline) {
-                return <code className="bg-light-3 dark:bg-dark-3 px-1.5 py-0.5 rounded text-sm text-red-600 dark:text-red-400">{children}</code>;
+            const isBlock = node?.position && node.position.start.line !== node.position.end.line || lang;
+            if (!isBlock) {
+                return <code className="bg-light-3 dark:bg-dark-3 px-1.5 py-0.5 rounded text-sm text-red-600 dark:text-red-400" {...props}>{children}</code>;
             }
             return (
                 <div className="my-2 rounded-lg overflow-hidden">
@@ -151,8 +152,8 @@ export default function ChatTutor() {
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-red-600 text-white rounded-br-md whitespace-pre-wrap'
-                                : 'bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-1 rounded-bl-md'
+                            ? 'bg-red-600 text-white rounded-br-md whitespace-pre-wrap'
+                            : 'bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-1 rounded-bl-md'
                             }`}>
                             {msg.role === 'assistant' ? renderContent(msg.content) : msg.content}
                         </div>

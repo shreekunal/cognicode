@@ -14,7 +14,7 @@ export default function LoginPage() {
 
   async function handleRegister(ev) {
     ev.preventDefault();
-    setError(false);
+    setError('');
     setLoginInProgress(true);
 
     try {
@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   async function handleLogin(ev) {
     ev.preventDefault();
-    setError(false);
+    setError('');
     setLoginInProgress(true);
 
     try {

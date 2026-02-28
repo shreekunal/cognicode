@@ -59,8 +59,8 @@ const Problems = () => {
 
     const difficultyColors = {
         'Hard': 'bg-red-700',
-        'Medium': 'bg-orange-600',
-        'Easy': 'bg-green-600'
+        'Medium': 'bg-red-500',
+        'Easy': 'bg-red-300 text-red-900'
     };
 
     const activeFilterCount = [difficultyFilter !== 'All', categoryFilter !== 'All', statusFilter !== 'All', search !== ''].filter(Boolean).length;
@@ -104,8 +104,8 @@ const Problems = () => {
                                         key={d}
                                         onClick={() => setDifficultyFilter(d)}
                                         className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${difficultyFilter === d
-                                                ? 'bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'
+                                            ? 'bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'
                                             }`}
                                     >
                                         {d}
@@ -131,8 +131,8 @@ const Problems = () => {
                                         key={s}
                                         onClick={() => setStatusFilter(s)}
                                         className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${statusFilter === s
-                                                ? 'bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'
+                                            ? 'bg-white dark:bg-dark-2 text-dark-1 dark:text-light-1 shadow-sm'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'
                                             }`}
                                     >
                                         {s}
@@ -182,7 +182,7 @@ const Problems = () => {
                                         <td className="px-6 py-4 text-left">{problem.category}</td>
                                         <td className="px-6 py-4 cursor-pointer text-center">
                                             {solvedIds.has(problem.id) ? (
-                                                <ImCheckboxChecked size={20} color={'green'} className='mx-auto' />
+                                                <ImCheckboxChecked size={20} className='mx-auto text-red-500' />
                                             ) : (
                                                 <span className="text-gray-400 text-xs">—</span>
                                             )}

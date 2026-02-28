@@ -48,17 +48,17 @@ export default function Home() {
       document.addEventListener("mousemove", onMouseMove);
 
       /* cursor — video hover */
-      const videos = document.querySelectorAll(".duo-wrap video");
-      videos.forEach((video) => {
-        video.addEventListener("mouseenter", () => {
-          cursor.innerHTML = "SOUND ON";
-          cursor.classList.add("cursor-text-active");
-        });
-        video.addEventListener("mouseleave", () => {
-          cursor.classList.remove("cursor-text-active");
-          cursor.innerHTML = "";
-        });
-      });
+      // const videos = document.querySelectorAll(".duo-wrap video");
+      // videos.forEach((video) => {
+      //   video.addEventListener("mouseenter", () => {
+      //     cursor.innerHTML = "Scroll";
+      //     cursor.classList.add("cursor-text-active");
+      //   });
+      //   video.addEventListener("mouseleave", () => {
+      //     cursor.classList.remove("cursor-text-active");
+      //     cursor.innerHTML = "";
+      //   });
+      // });
 
       /* cursor — developer row hover (image preview) */
       const rows = document.querySelectorAll(".dev-row");
@@ -101,7 +101,7 @@ export default function Home() {
           <div>
             <h1>Code Practice</h1>
             <h2>AI-Powered Growth</h2>
-            <video autoPlay muted loop src="/duo/Video/section1-video.mp4" />
+            <video autoPlay muted loop playsInline poster="/duo/images/page4-img1.webp" src="/duo/Video/section1-video.mp4" />
           </div>
         </section>
 
@@ -121,7 +121,7 @@ export default function Home() {
                 Practice 45+ curated problems, get instant hints, and track your progress —
                 all in one place.
               </p>
-              <button>About us</button>
+              <button onClick={() => document.querySelector('.developers-section')?.scrollIntoView({ behavior: 'smooth' })}>About us</button>
             </div>
           </div>
         </section>

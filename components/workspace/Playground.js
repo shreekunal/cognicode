@@ -10,7 +10,7 @@ import ComplexityAnalysis from "../ComplexityAnalysis";
 import Split from "react-split";
 import { languagesData, mockComments, getStarterForLanguage } from "@/constants";
 import { AiOutlineFullscreen, AiOutlineFullscreenExit } from "react-icons/ai";
-import { FiBookOpen, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
+import { FiBookOpen, FiCheckCircle, FiAlertTriangle, FiRotateCcw } from "react-icons/fi";
 import Timer from "../shared/Timer";
 import axios from "axios";
 import Loader from "../shared/Loader";
@@ -103,6 +103,22 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
     };
   }, []);
 
+  // Keyboard shortcuts: Ctrl+Enter to run, Ctrl+Shift+Enter to submit
+  useEffect(() => {
+    const handleKeyboard = (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          if (isForSubmission && code && !isCodeSubmitting) handleSubmit();
+        } else {
+          if (code && !isCodeRunning) handleCompile(customInput);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [code, customInput, isCodeRunning, isCodeSubmitting, isForSubmission]);
+
   const onChange = (action, data) => {
     switch (action) {
       case "code": {
@@ -115,8 +131,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
     }
   };
 
-  const handleCompile = async (input, forSubmisssion = false) => {
-    if (!forSubmisssion) setIsCodeRunning(true);
+  const handleCompile = async (input, forSubmission = false) => {
+    if (!forSubmission) setIsCodeRunning(true);
 
     try {
       // Use Piston API for code execution
@@ -134,14 +150,14 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
 
       const data = await response.json();
 
-      if (!forSubmisssion) {
+      if (!forSubmission) {
         setOutputDetails(data)
         setIsCodeRunning(false);
       };
       return data.output;
     } catch (error) {
       setIsCodeRunning(false);
-      console.error(error);
+      setOutputDetails({ output: 'Execution error: ' + error.message, submitted: false });
     }
   };
 
@@ -219,6 +235,20 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
     }
   };
 
+  const handleResetCode = () => {
+    if (!window.confirm("Reset code to starter template? Your changes will be lost.")) return;
+    // Clear saved code from localStorage
+    if (clickedProblemId) {
+      try { localStorage.removeItem(getStorageKey(clickedProblemId, language.value)); } catch (e) { }
+    }
+    // Reset to starter code or default
+    if (currentProblem?.starterCode) {
+      setCode(getStarterForLanguage(currentProblem.starterCode, language.value));
+    } else {
+      setCode(mockComments[language.value]);
+    }
+  };
+
   // Shared bottom panel with tabs
   const renderBottomPanel = (additionalStyles = '') => (
     <div className={`!w-full min-h-[30%] flex flex-col pt-3 overflow-y-auto ${additionalStyles}`}>
@@ -248,6 +278,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
           <button
             onClick={() => handleCompile(customInput)}
             disabled={!code}
+            title="Run (Ctrl+Enter)"
             className="px-4 py-2 bg-dark-4 dark:bg-dark-4 text-light-1 rounded-lg text-sm hover:bg-dark-1 dark:hover:bg-gray-1 transition-colors"
           >
             {isCodeRunning ? <Loader /> : "Run"}
@@ -256,6 +287,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
             <button
               onClick={handleSubmit}
               disabled={!code}
+              title="Submit (Ctrl+Shift+Enter)"
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-light-1 rounded-lg text-sm transition-colors"
             >
               {isCodeSubmitting ? <Loader /> : "Submit"}
@@ -338,6 +370,11 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted }) => {
         </div>
         <div className="flex gap-2 items-center">
           <Timer />
+          <button onClick={handleResetCode} className="hover:bg-light-3 dark:hover:bg-dark-4 hover:border-light-4 dark:hover:border-dark-3 rounded-lg p-1" title="Reset code (Ctrl+Shift+R)">
+            <div className="h-6 w-6 font-bold text-lg text-dark-4 dark:text-light-4">
+              <FiRotateCcw />
+            </div>
+          </button>
           <button onClick={handleFullScreen} className="hover:bg-light-3 dark:hover:bg-dark-4 hover:border-light-4 dark:hover:border-dark-3 rounded-lg p-1">
             <div className="h-6 w-6 font-bold text-2xl text-dark-4 dark:text-light-4">
               {!isFullScreen ? (

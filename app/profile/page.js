@@ -1,10 +1,15 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
+import { ProfileSkeleton } from "@/components/shared/Skeleton";
 
 export default function ProfileSection() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState({});
   const [stats, setStats] = useState(null);
   const [totalProblems, setTotalProblems] = useState({ Easy: 0, Medium: 0, Hard: 0 });
@@ -15,7 +20,7 @@ export default function ProfileSection() {
       const data = response.data;
       setData(data);
     } catch (error) {
-      console.error("Error fetching user info:", error);
+      // silently fail — skeleton covers loading
     }
   }
 
@@ -25,7 +30,7 @@ export default function ProfileSection() {
       const data = await res.json();
       if (data.ok) setStats(data.stats);
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      // silently fail
     }
   }
 
@@ -39,15 +44,19 @@ export default function ProfileSection() {
       });
       setTotalProblems(counts);
     } catch (error) {
-      console.error("Error fetching problems:", error);
+      // silently fail
     }
   }
 
   useEffect(() => {
-    fetchUserInfo();
-    fetchStats();
-    fetchTotalProblems();
-  }, []);
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+    Promise.all([fetchUserInfo(), fetchStats(), fetchTotalProblems()])
+      .finally(() => setLoading(false));
+  }, [session, status]);
 
   // Use pre-computed unique problem counts per difficulty from backend
   const solvedByDifficulty = stats?.solvedByDifficulty || { Easy: 0, Medium: 0, Hard: 0 };
@@ -77,6 +86,19 @@ export default function ProfileSection() {
 
   const totalSolved = stats?.problemsSolved || 0;
   const accuracy = stats ? Math.round((stats.accuracy || 0) * 100) : 0;
+
+  const totalAll = totalProblems.Easy + totalProblems.Medium + totalProblems.Hard;
+  // Donut chart segments
+  const easyPct = totalAll > 0 ? (solvedByDifficulty.Easy / totalAll) * 100 : 0;
+  const medPct = totalAll > 0 ? (solvedByDifficulty.Medium / totalAll) * 100 : 0;
+  const hardPct = totalAll > 0 ? (solvedByDifficulty.Hard / totalAll) * 100 : 0;
+  const solvedPct = easyPct + medPct + hardPct;
+  const donutGradient = totalSolved > 0
+    ? `conic-gradient(#fca5a5 0% ${easyPct}%, #ef4444 ${easyPct}% ${easyPct + medPct}%, #b91c1c ${easyPct + medPct}% ${solvedPct}%, ${typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'} ${solvedPct}% 100%)`
+    : undefined;
+
+  if (status === 'loading' || loading) return <ProfileSkeleton />;
+  if (!session) return null;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-10 min-h-screen">
@@ -160,19 +182,22 @@ export default function ProfileSection() {
 
               {/* Donut-style circle */}
               <div className="relative min-w-[110px] min-h-[110px]">
-                <div className="w-[110px] h-[110px] rounded-full bg-light-4 dark:bg-dark-4 flex justify-center items-center">
-                  <div className="w-[90px] h-[90px] rounded-full bg-light-2 dark:bg-dark-3 flex flex-col justify-center items-center">
+                <div
+                  className="w-[110px] h-[110px] rounded-full bg-light-4 dark:bg-dark-4 flex justify-center items-center"
+                  style={donutGradient ? { background: donutGradient } : undefined}
+                >
+                  <div className="w-[78px] h-[78px] rounded-full bg-light-2 dark:bg-dark-3 flex flex-col justify-center items-center">
                     <span className="text-2xl font-bold text-dark-1 dark:text-light-1">{totalSolved}</span>
-                    <span className="text-xs text-gray-1 dark:text-gray-2">Solved</span>
+                    <span className="text-[10px] text-gray-1 dark:text-gray-2">Solved</span>
                   </div>
                 </div>
               </div>
 
               {/* Progress bars */}
               <div className="flex-grow w-full space-y-3">
-                <ProgressBar label="Easy" solved={solvedByDifficulty.Easy} total={totalProblems.Easy} color="bg-green-500" />
-                <ProgressBar label="Medium" solved={solvedByDifficulty.Medium} total={totalProblems.Medium} color="bg-yellow-500" />
-                <ProgressBar label="Hard" solved={solvedByDifficulty.Hard} total={totalProblems.Hard} color="bg-accent" />
+                <ProgressBar label="Easy" solved={solvedByDifficulty.Easy} total={totalProblems.Easy} color="bg-red-300" />
+                <ProgressBar label="Medium" solved={solvedByDifficulty.Medium} total={totalProblems.Medium} color="bg-red-500" />
+                <ProgressBar label="Hard" solved={solvedByDifficulty.Hard} total={totalProblems.Hard} color="bg-red-700" />
               </div>
             </div>
             {stats && (
@@ -212,9 +237,9 @@ export default function ProfileSection() {
                     const key = d.toISOString().slice(0, 10);
                     const count = stats.activityMap[key] || 0;
                     const intensity = count === 0 ? 'bg-light-4 dark:bg-dark-4'
-                      : count <= 2 ? 'bg-green-200 dark:bg-green-900'
-                        : count <= 5 ? 'bg-green-400 dark:bg-green-700'
-                          : 'bg-green-600 dark:bg-green-500';
+                      : count <= 2 ? 'bg-red-200 dark:bg-red-900'
+                        : count <= 5 ? 'bg-red-400 dark:bg-red-700'
+                          : 'bg-red-600 dark:bg-red-500';
                     return (
                       <div
                         key={key}
@@ -227,9 +252,9 @@ export default function ProfileSection() {
                 <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
                   <span>Less</span>
                   <div className="w-3 h-3 rounded-sm bg-light-4 dark:bg-dark-4" />
-                  <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900" />
-                  <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-700" />
-                  <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-500" />
+                  <div className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-900" />
+                  <div className="w-3 h-3 rounded-sm bg-red-400 dark:bg-red-700" />
+                  <div className="w-3 h-3 rounded-sm bg-red-600 dark:bg-red-500" />
                   <span>More</span>
                 </div>
               </div>

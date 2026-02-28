@@ -20,11 +20,13 @@ except Exception:
     openai = None
     OPENAI_AVAILABLE = False
 
-load_dotenv()
+# Load root .env (all secrets consolidated there)
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # Configure LLM (supports OpenAI, Groq, or any OpenAI-compatible API)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")  # e.g. https://api.groq.com/openai/v1
+OPENAI_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+OPENAI_API_BASE = os.getenv("GROQ_API_BASE") or os.getenv("OPENAI_API_BASE")
+OPENAI_MODEL = os.getenv("GROQ_MODEL") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 if OPENAI_AVAILABLE and OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
     if OPENAI_API_BASE:
@@ -743,7 +745,7 @@ def review_code(request: CodeReviewRequest, req: Request):
                     f"focusing on bugs, style, performance, and best practices. Return a JSON object with keys: bugs, style, performance, bestPractices, summary.\n\nCode:\n{code}\n"
                 )
                 resp = openai.ChatCompletion.create(
-                    model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+                    model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": "You are a helpful code review assistant."},
                         {"role": "user", "content": prompt}
@@ -927,7 +929,7 @@ def analyze_complexity(request: ComplexityRequest, req: Request):
                     f"Be precise with Big-O notation. If there are multiple functions, analyze the main/dominant one.\n\nCode:\n{code}\n"
                 )
                 resp = openai.ChatCompletion.create(
-                    model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+                    model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": "You are a computer science expert specializing in algorithm analysis. Always respond with valid JSON."},
                         {"role": "user", "content": prompt}
@@ -991,7 +993,7 @@ def get_hint(request: HintRequest, req: Request):
 
     try:
         resp = openai.ChatCompletion.create(
-            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a helpful coding tutor. You give hints that guide students toward the solution without giving it away. Be encouraging."},
                 {"role": "user", "content": prompt}
@@ -1034,7 +1036,7 @@ def explain_solution(request: ExplainRequest, req: Request):
 
     try:
         resp = openai.ChatCompletion.create(
-            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a computer science tutor explaining solutions. Always respond with valid JSON."},
                 {"role": "user", "content": prompt}
@@ -1091,7 +1093,7 @@ def chat_tutor(request: ChatRequest, req: Request):
 
     try:
         resp = openai.ChatCompletion.create(
-            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            model=OPENAI_MODEL,
             messages=messages,
             max_tokens=1200,
             temperature=0.5,

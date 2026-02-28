@@ -37,7 +37,6 @@ export async function GET(req) {
             for (const sol of sp.solution) {
                 submissions.push({
                     code: sol.code,
-                    language: sol.code ? undefined : undefined, // not stored yet
                     status: sol.status,
                     passedTestCases: sol.passedTestCases,
                     cpuTime: sol.complexity?.[0] || '0',

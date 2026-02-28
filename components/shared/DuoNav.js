@@ -8,6 +8,7 @@ import Link from "next/link";
 export default function DuoNav() {
     const { data: session } = useSession();
     const userID = session?.user?._id;
+    const userEmail = session?.user?.email || '';
     const pathname = usePathname();
 
     const [theme, setTheme] = useState("light");
@@ -38,7 +39,7 @@ export default function DuoNav() {
         <div id="duo-nav">
             <Link href="/" className="duo-nav-logo">
                 <img src="/coding.png" alt="cognicode" />
-                <span>COGNICODE</span>
+                <span>COGNI<span className="text-red-500">CODE</span></span>
             </Link>
             <div className="part-2">
                 <h3><Link href={userID ? "/learn" : "/login"} className={pathname?.startsWith("/learn") || pathname?.startsWith("/courses") ? "duo-nav-active" : ""}>LEARN</Link></h3>
@@ -51,8 +52,14 @@ export default function DuoNav() {
                         alt="theme"
                     />
                 </button>
-                <Link href={userID ? "/profile" : "/login"} className="duo-profile-btn">
-                    <img src="/profile.png" alt="profile" />
+                <Link href={userID ? "/profile" : "/login"} className={`duo-profile-btn ${pathname?.startsWith("/profile") || pathname?.startsWith("/edit-profile") ? "duo-nav-profile-active" : ""}`}>
+                    {userID ? (
+                        <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold uppercase">
+                            {userEmail.charAt(0)}
+                        </div>
+                    ) : (
+                        <img src="/profile.png" alt="profile" />
+                    )}
                 </Link>
             </div>
         </div>
