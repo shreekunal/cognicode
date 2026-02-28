@@ -112,6 +112,15 @@ class ExplainRequest(BaseModel):
     language: str = "python"
 
 
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    topic: Optional[str] = None
+
+
 # ─── Constants & Difficulty Mapping ──────────────────────────────────────────
 
 DIFFICULTY_RANK = {"Easy": 1, "Medium": 2, "Hard": 3}
@@ -1048,6 +1057,48 @@ def explain_solution(request: ExplainRequest, req: Request):
 
         result["remaining"] = llm_limiter.remaining(client_ip)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/chat")
+def chat_tutor(request: ChatRequest, req: Request):
+    """AI Chat Tutor — conversational programming teacher."""
+    if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="LLM not configured")
+
+    client_ip = req.client.host if req.client else "unknown"
+    if not llm_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a minute.")
+
+    system_prompt = (
+        "You are CogniCode AI Tutor — a friendly, expert programming teacher. "
+        "You teach Data Structures, Algorithms, and programming concepts interactively. "
+        "Guidelines:\n"
+        "- Give clear, concise explanations with real code examples\n"
+        "- Use analogies to explain complex concepts\n"
+        "- When showing code, use markdown code blocks with the language specified\n"
+        "- After explaining a concept, suggest a practice problem or ask a follow-up question to test understanding\n"
+        "- If the user asks something off-topic, gently redirect to programming/CS topics\n"
+        "- Keep responses focused and under 500 words unless the user asks for detail\n"
+        "- Be encouraging and supportive\n"
+    )
+
+    # Build messages array with system prompt + conversation history (last 20 messages max)
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in request.messages[-20:]:
+        messages.append({"role": msg.role, "content": msg.content})
+
+    try:
+        resp = openai.ChatCompletion.create(
+            model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+            messages=messages,
+            max_tokens=1200,
+            temperature=0.5,
+        )
+        reply = resp.choices[0].message.content.strip()
+        remaining = llm_limiter.remaining(client_ip)
+        return {"reply": reply, "remaining": remaining}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

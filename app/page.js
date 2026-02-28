@@ -99,8 +99,8 @@ export default function Home() {
         {/* ====== HERO ====== */}
         <section className="hero-section">
           <div>
-            <h1>Learn Compete</h1>
-            <h2>Collaborate Grow</h2>
+            <h1>Code Practice</h1>
+            <h2>AI-Powered Growth</h2>
             <video autoPlay muted loop src="/duo/Video/section1-video.mp4" />
           </div>
         </section>
@@ -108,18 +108,18 @@ export default function Home() {
         {/* ====== ABOUT ====== */}
         <section className="about-section">
           <div className="top">
-            <h1>We are CogiCode,</h1>
+            <h1>We are CogniCode,</h1>
           </div>
           <div className="bottom">
             <div className="left">
-              <h3>A CREATIVE COLLECTION MADE TO UNLOCK YOUR BRAND&apos;S POTENTIAL</h3>
+              <h3>AN AI-POWERED PLATFORM BUILT TO SHARPEN YOUR CODING SKILLS</h3>
             </div>
             <div className="right">
               <p>
-                We weave together bold strategy and creative execution to produce thought-provoking
-                digital experiences. We take a highly personalized approach to delivering branding,
-                web design, and content marketing solutions. Born in the DC area - now serving
-                clients worldwide.
+                We combine structured learning paths with AI-driven code review, complexity
+                analysis, and smart recommendations to accelerate your problem-solving journey.
+                Practice 45+ curated problems, get instant hints, and track your progress —
+                all in one place.
               </p>
               <button>About us</button>
             </div>
@@ -130,7 +130,7 @@ export default function Home() {
         <section className="services-section">
           <p>
             EXPLORE OUR <br />
-            PLATFORM
+            FEATURES
           </p>
 
           <div className="elem">
@@ -186,7 +186,7 @@ export default function Home() {
         {/* ====== FOOTER ====== */}
         <footer className="simple-footer">
           <div className="footer-content">
-            <p>&copy; 2024 Cognicode. All rights reserved.</p>
+            <p>&copy; 2026 CogniCode. All rights reserved.</p>
             <div className="footer-links">
               <Link href="/learn">Learn</Link>
               <Link href="/problems">Problems</Link>
