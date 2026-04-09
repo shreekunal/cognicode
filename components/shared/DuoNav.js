@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function DuoNav() {
@@ -10,6 +10,8 @@ export default function DuoNav() {
     const userID = session?.user?._id;
     const userEmail = session?.user?.email || '';
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const activeLearnTab = searchParams?.get("tab") || "learn";
 
     const [theme, setTheme] = useState("light");
 
@@ -42,7 +44,8 @@ export default function DuoNav() {
                 <span>COGNI<span className="text-red-500">CODE</span></span>
             </Link>
             <div className="part-2">
-                <h3><Link href={userID ? "/learn" : "/login"} className={pathname?.startsWith("/learn") || pathname?.startsWith("/courses") ? "duo-nav-active" : ""}>LEARN</Link></h3>
+                <h3><Link href={userID ? "/learn" : "/login"} className={(pathname?.startsWith("/learn") || pathname?.startsWith("/courses")) && activeLearnTab !== "prepare-test" ? "duo-nav-active" : ""}>LEARN</Link></h3>
+                <h3><Link href={userID ? "/learn?tab=prepare-test" : "/login"} className={pathname?.startsWith("/learn") && activeLearnTab === "prepare-test" ? "duo-nav-active" : ""}>PREPARE &amp; TEST</Link></h3>
                 <h3><Link href={userID ? "/problems" : "/login"} className={pathname?.startsWith("/problems") ? "duo-nav-active" : ""}>PROBLEMS</Link></h3>
             </div>
             <div className="duo-nav-icons">
