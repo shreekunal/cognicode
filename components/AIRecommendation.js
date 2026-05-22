@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { FiList, FiTarget, FiZap, FiAlertCircle, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
+import { slugify } from '@/utils/slugify';
 
 export default function AIRecommendation({ currentDifficulty }) {
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function AIRecommendation({ currentDifficulty }) {
     setLoading(true);
     setError(null);
     try {
-      const statsRes = await fetch('/api/getUserStats');
+      const statsRes = await fetch('/cognicode/api/getUserStats');
       const statsData = await statsRes.json();
 
       const userStats = statsData.ok ? {
@@ -29,7 +30,7 @@ export default function AIRecommendation({ currentDifficulty }) {
         lastDifficulty: currentDifficulty || 'Easy'
       };
 
-      const res = await fetch('/api/ai/nextQuestion', {
+      const res = await fetch('/cognicode/api/ai/nextQuestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userStats }),
@@ -66,7 +67,7 @@ export default function AIRecommendation({ currentDifficulty }) {
     return (
       <Link
         key={index}
-        href={`/problems/${rec.problemId}`}
+        href={`/problems/${rec.problemId}/${slugify(rec.title)}`}
         className={`block bg-light-1 dark:bg-dark-3 rounded-lg border border-light-4 dark:border-dark-4 p-3 hover:shadow-lg transition-all hover:border-gray-400 dark:hover:border-gray-500 group cursor-pointer ${fullWidth ? 'flex gap-6' : ''}`}
       >
         <div className={fullWidth ? 'flex-1' : ''}>

@@ -16,7 +16,7 @@ export default function ProfileSection() {
 
   async function fetchUserInfo() {
     try {
-      const response = await axios.get("/api/getUserInfo");
+      const response = await axios.get("/cognicode/api/getUserInfo");
       const data = response.data;
       setData(data);
     } catch (error) {
@@ -26,7 +26,7 @@ export default function ProfileSection() {
 
   async function fetchStats() {
     try {
-      const res = await fetch("/api/getUserStats");
+      const res = await fetch("/cognicode/api/getUserStats");
       const data = await res.json();
       if (data.ok) setStats(data.stats);
     } catch (error) {
@@ -36,7 +36,7 @@ export default function ProfileSection() {
 
   async function fetchTotalProblems() {
     try {
-      const res = await fetch("/api/getAllProblems");
+      const res = await fetch("/cognicode/api/getAllProblems");
       const problems = await res.json();
       const counts = { Easy: 0, Medium: 0, Hard: 0 };
       problems.forEach(p => {
@@ -115,9 +115,9 @@ export default function ProfileSection() {
         <div className="flex flex-col gap-6 lg:col-span-1">
 
           {/* User Info Card */}
-          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-100">
+          <div className="bg-white/95 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-light-4 dark:border-dark-4 hover:border-accent/20 animate-on-load animate-slide-up delay-100">
             <div className="flex flex-col items-center mb-6">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-red-500 bg-light-3 dark:bg-dark-4 flex items-center justify-center shadow-md mb-4">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-red-500 bg-white dark:bg-dark-4 flex items-center justify-center shadow-md mb-4">
                 {data.image ? (
                   <img src={data.image} alt={data.name} className="w-full h-full object-cover" />
                 ) : (
@@ -156,7 +156,7 @@ export default function ProfileSection() {
           </div>
 
           {/* Skills Card */}
-          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-300">
+          <div className="bg-white/95 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-light-4 dark:border-dark-4 hover:border-accent/20 animate-on-load animate-slide-up delay-300">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Skills</h3>
             {Object.entries(skills).map(([category, skillList]) => (
               skillList.length > 0 && (
@@ -166,7 +166,7 @@ export default function ProfileSection() {
                     {skillList.map((skill, index) => (
                       <span
                         key={index}
-                        className="text-xs bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-4 px-3 py-1.5 rounded-full border border-light-4 dark:border-dark-4"
+                        className="text-xs bg-light-3/80 dark:bg-dark-4 text-dark-1 dark:text-light-4 px-3 py-1.5 rounded-full border border-light-4 dark:border-dark-4"
                       >
                         {skill.name} <span className="text-accent font-semibold">×{skill.count}</span>
                       </span>
@@ -185,7 +185,7 @@ export default function ProfileSection() {
         <div className="flex flex-col gap-6 lg:col-span-2">
 
           {/* Solved Problems Card */}
-          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-200">
+          <div className="bg-white/95 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-light-4 dark:border-dark-4 hover:border-accent/20 animate-on-load animate-slide-up delay-200">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-5">Solved Problems</h3>
             <div className="flex gap-8 items-center w-full max-sm:flex-col max-sm:items-start">
 
@@ -219,7 +219,7 @@ export default function ProfileSection() {
           </div>
 
           {/* Streak & Activity Card */}
-          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-300">
+          <div className="bg-white/95 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-light-4 dark:border-dark-4 hover:border-accent/20 animate-on-load animate-slide-up delay-300">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Activity</h3>
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="text-center p-3 bg-light-3 dark:bg-dark-4 rounded-xl">
@@ -271,7 +271,7 @@ export default function ProfileSection() {
           </div>
 
           {/* Badges Card */}
-          <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-400">
+          <div className="bg-white/95 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-light-4 dark:border-dark-4 hover:border-accent/20 animate-on-load animate-slide-up delay-400">
             <h3 className="text-lg font-bold text-dark-1 dark:text-light-1 mb-4">Achievements</h3>
             {(() => {
               const badges = [];

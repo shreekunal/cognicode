@@ -25,7 +25,7 @@ const Form = () => {
 
   async function fetchUserInfo() {
     try {
-      const response = await axios.get("/api/getUserInfo");
+      const response = await axios.get("/cognicode/api/getUserInfo");
       const data = response.data;
       setFormData(prev => ({ ...prev, ...data }));
       if (data.image) {
@@ -66,7 +66,7 @@ const Form = () => {
     setError(null);
 
     try {
-      const response = await axios.post('/api/profileUpdate', formData);
+      const response = await axios.post('/cognicode/api/profileUpdate', formData);
       router.push('/profile');
     } catch (error) {
       if (error.response) {
@@ -196,7 +196,7 @@ const Form = () => {
         disabled={formData.age === '' || formData.city === '' || formData.college === '' || formData.country === '' || formData.gender === '' || formData.name === '' || formData.phone === '' || isLoading}
       >
         {isLoading ? (
-          <img src="loader.svg" alt="loading" className="w-6 h-6 object-contain mx-auto" />
+          <img src="/cognicode/loader.svg" alt="loading" className="w-6 h-6 object-contain mx-auto" />
         ) : "Update"}
       </button>
 

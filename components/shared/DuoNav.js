@@ -11,6 +11,7 @@ export default function DuoNav() {
     const userID = session?.user?._id;
     const userEmail = session?.user?.email || '';
     const pathname = usePathname();
+    const isProfilePage = pathname?.startsWith('/profile') || pathname?.startsWith('/edit-profile');
     const searchParams = useSearchParams();
     const activeLearnTab = searchParams?.get("tab") || "learn";
 
@@ -20,21 +21,21 @@ export default function DuoNav() {
 
     useEffect(() => {
         if (userID) {
-            fetch("/api/getUserInfo")
+            fetch("/cognicode/api/getUserInfo")
                 .then(res => res.json())
                 .then(data => {
                     if (data.image) setUserImage(data.image);
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
-    }, [userID]);
+    }, [userID + (pathname || "")]); // Combined into a single string to maintain array size 1
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") || "light";
         setTheme(savedTheme);
         const savedCompact = localStorage.getItem("navCompact") === "true";
         setIsCompact(savedCompact);
-        
+
         // Initialize nav height variable
         document.documentElement.style.setProperty('--nav-height', savedCompact ? '5.5vh' : '9vh');
 
@@ -66,7 +67,7 @@ export default function DuoNav() {
     return (
         <div id="duo-nav" className={isCompact ? "compact" : ""}>
             <Link href="/" className="duo-nav-logo">
-                <img src="/coding.png" alt="cognicode" />
+                <img src="/cognicode/coding.png" alt="cognicode" />
                 <span>COGNI<span className="text-red-500">CODE</span></span>
             </Link>
             <div className="part-2">
@@ -75,20 +76,22 @@ export default function DuoNav() {
                 <h3><Link href={userID ? "/problems" : "/login"} className={pathname?.startsWith("/problems") ? "duo-nav-active" : ""}>PROBLEMS</Link></h3>
             </div>
             <div className="duo-nav-icons">
-                <button 
-                    onClick={toggleCompact} 
-                    className="duo-theme-btn text-dark-1 dark:text-light-1" 
+                <button
+                    onClick={toggleCompact}
+                    className="duo-theme-btn text-dark-1 dark:text-light-1"
                     title={isCompact ? "Expand Navbar" : "Focus Mode (Shrink Navbar)"}
                 >
                     {isCompact ? <FiMaximize2 size={16} /> : <FiMinimize2 size={16} />}
                 </button>
-                <button onClick={toggleTheme} className="duo-theme-btn">
-                    <img
-                        src={theme === "light" ? "/dark-mode.png" : "/light-mode.png"}
-                        alt="theme"
-                    />
-                </button>
-                <Link href={userID ? "/profile" : "/login"} className={`duo-profile-btn ${pathname?.startsWith("/profile") || pathname?.startsWith("/edit-profile") ? "duo-nav-profile-active" : ""}`}>
+                {!isProfilePage && (
+                    <button onClick={toggleTheme} className="duo-theme-btn">
+                        <img
+                            src={theme === "light" ? "/cognicode/dark-mode.png" : "/cognicode/light-mode.png"}
+                            alt="theme"
+                        />
+                    </button>
+                )}
+                <Link href={userID ? "/profile" : "/login"} className="duo-profile-btn">
                     {userID ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-red-600 text-white flex items-center justify-center text-sm font-bold uppercase border border-light-4 dark:border-dark-4">
                             {userImage ? (
@@ -98,7 +101,7 @@ export default function DuoNav() {
                             )}
                         </div>
                     ) : (
-                        <img src="/profile.png" alt="profile" />
+                        <img src="/cognicode/profile.png" alt="profile" />
                     )}
                 </Link>
             </div>

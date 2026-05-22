@@ -44,7 +44,7 @@ const ProblemDesc = ({ problems, code, language }) => {
         if (!params?.id) return;
         setSubmissionsLoading(true);
         try {
-            const res = await fetch(`/api/getSubmissions?problemId=${params.id}`);
+            const res = await fetch(`/cognicode/api/getSubmissions?problemId=${params.id}`);
             const data = await res.json();
             if (data.ok) {
                 setSubmissions(data.submissions);
@@ -63,7 +63,7 @@ const ProblemDesc = ({ problems, code, language }) => {
     }, [activeTab]);
 
     return (
-        <div className='w-full h-full min-h-0 flex flex-col overflow-x-hidden overflow-hidden px-1'>
+        <div className='w-full h-full min-h-0 flex flex-col overflow-x-hidden overflow-hidden px-1 pb-1.5'>
             <div className='flex h-11 w-full items-center pt-2 bg-light-3 dark:bg-dark-4 rounded-t-lg px-2'>
                 <button
                     onClick={() => setActiveTab('description')}

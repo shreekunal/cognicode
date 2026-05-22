@@ -2,7 +2,7 @@ const Loader = () => {
     return (
       <div>
           <img
-              src="/loader.svg"
+              src="/cognicode/loader.svg"
               alt="loader"
               width={22}
               height={22}

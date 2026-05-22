@@ -76,6 +76,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const settingsModalRef = useRef(null);
 
   const [lastCodeLoading, setLastCodeLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const activeFontStyle = fontStyleOptions.find((option) => option.value === editorSettings.fontStyle) || fontStyleOptions[0];
   const settingsPortalTarget = typeof document !== "undefined" ? document.body : null;
@@ -84,7 +85,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     if (!clickedProblemId) return;
     setLastCodeLoading(true);
     try {
-      const res = await fetch(`/api/getSubmissions?problemId=${clickedProblemId}`);
+      const res = await fetch(`/cognicode/api/getSubmissions?problemId=${clickedProblemId}`);
       const data = await res.json();
       if (data.ok && data.submissions?.length > 0) {
         const lastSub = data.submissions[0];
@@ -107,23 +108,56 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   const formatCode = () => {
     try {
+      const isPython = language.value === 'python3';
+      const indentString = isPython ? "    " : "  ";
       let indentLevel = 0;
       const lines = code.split('\n');
+
       const formattedLines = lines.map(line => {
         let trimmed = line.trim();
         if (!trimmed) return "";
-        const closingMatches = (trimmed.match(/[}\]\]]/g) || []).length;
-        const openingMatches = (trimmed.match(/[{(\[]/g) || []).length;
-        if (/^[}\])\s]/.test(trimmed)) {
-          indentLevel = Math.max(0, indentLevel - 1);
+
+        if (isPython) {
+          // Dedent for keywords that start a new branch at same level
+          if (/^(elif|else|except|finally)\b/.test(trimmed)) {
+            indentLevel = Math.max(0, indentLevel - 1);
+          }
+
+          const indent = indentString.repeat(indentLevel);
+          const result = indent + trimmed;
+
+          // Increment indent level for next line if this line ends with a colon
+          if (trimmed.endsWith(':')) {
+            indentLevel += 1;
+          } else if (/^(return|break|continue|pass)\b/.test(trimmed)) {
+            // Very basic heuristic: keywords that often end a block
+            // This isn't perfect but helps prevent runaway indentation
+            // We only dedent if we were actually indented
+            // Actually, we don't know if this is the last line of the block.
+            // So we leave it to the user or better logic.
+          }
+
+          return result;
+        } else {
+          // C-style logic (JS, Java, C++)
+          const closingMatches = (trimmed.match(/[}]/g) || []).length;
+          const openingMatches = (trimmed.match(/[{]/g) || []).length;
+
+          // If line starts with closing brace, dedent before applying
+          if (trimmed.startsWith('}')) {
+            indentLevel = Math.max(0, indentLevel - 1);
+          }
+
+          const indent = indentString.repeat(indentLevel);
+
+          if (openingMatches > closingMatches) {
+            indentLevel += (openingMatches - closingMatches);
+          } else if (closingMatches > openingMatches) {
+            indentLevel = Math.max(0, indentLevel - (closingMatches - openingMatches));
+          }
+
+          return indent + trimmed;
         }
-        const indent = "  ".repeat(indentLevel);
-        if (openingMatches > closingMatches) {
-          indentLevel += (openingMatches - closingMatches);
-        } else if (closingMatches > openingMatches) {
-          indentLevel = Math.max(0, indentLevel - (closingMatches - openingMatches));
-        }
-        return indent + trimmed;
       });
       setCode(formattedLines.join('\n'));
     } catch (e) {
@@ -174,13 +208,24 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  useEffect(() => {
+    const syncTheme = () => setIsDarkMode(document.documentElement.classList.contains("dark"));
+
+    syncTheme();
+
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  }, []);
+
   const fetchHint = async () => {
     if (hintLevel >= 3 || !currentProblem) return;
     const nextLevel = hintLevel + 1;
     setHintLoading(true);
     setHintError(null);
     try {
-      const res = await fetch('/api/ai/hint', {
+      const res = await fetch('/cognicode/api/ai/hint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -284,7 +329,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         const testCase = visibleTestCases[i];
         const tcInput = formatCaseValue(testCase.input);
         try {
-          const response = await fetch('/api/execute', {
+          const response = await fetch('/cognicode/api/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ language: language.value, code: code, input: tcInput }),
@@ -308,29 +353,56 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     const runInput = input !== null ? input : (isCustomInput ? customInput : selectedTestCaseInput);
 
     try {
-      const response = await fetch('/api/execute', {
+      const response = await fetch('/cognicode/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: language.value, code: code, input: runInput }),
       });
       const data = await response.json();
-      setOutputDetails(data);
+      const normalizedOutput = (data.output || data.error || data.details || data.message || '').trim();
 
       if (!isCustomInput && selectedTestCase) {
-        const actualOutput = (data.output || "").trim();
+        const actualOutput = normalizedOutput;
         const expectedOutput = formatCaseValue(selectedTestCase.output).trim();
         const isPassed = actualOutput === expectedOutput;
+
+        setOutputDetails({
+          ...data,
+          output: normalizedOutput,
+          resultTitle: isPassed ? 'Accepted' : (data.error && !data.output ? 'Compilation Error' : 'Wrong Answer'),
+          resultStatus: isPassed ? 'accepted' : 'wrong-answer',
+          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${data.cpuTime}s` : '0 ms',
+          caseIndex: selectedTestCaseIndex,
+          caseInput: selectedTestCaseInput,
+          caseOutput: actualOutput,
+          caseExpected: expectedOutput,
+        });
 
         setTestCaseResults(prev => {
           const res = [...prev];
           res[selectedTestCaseIndex] = { status: isPassed ? 'passed' : 'failed', actualOutput: actualOutput };
           return res;
         });
+      } else {
+        setOutputDetails({
+          ...data,
+          output: normalizedOutput,
+          resultTitle: data.error && !data.output ? 'Compilation Error' : 'Output',
+          resultStatus: data.error && !data.output ? 'compilation-error' : 'output',
+          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${data.cpuTime}s` : '0 ms',
+        });
       }
       setIsCodeRunning(false);
     } catch (error) {
       setIsCodeRunning(false);
-      setOutputDetails({ output: 'Execution error: ' + error.message, submitted: false });
+      setOutputDetails({
+        output: 'Execution error: ' + error.message,
+        error: error.message,
+        submitted: false,
+        resultTitle: 'Execution Error',
+        resultStatus: 'execution-error',
+        resultRuntime: '0 ms',
+      });
     }
   };
 
@@ -338,7 +410,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     setIsCodeSubmitting(true);
     setActiveTab("results");
     try {
-      const res = await fetch("/api/submitCode", {
+      const res = await fetch("/cognicode/api/submitCode", {
         method: "POST",
         body: JSON.stringify({ code, problem: clickedProblemId, language: language.value }),
         headers: { "Content-Type": "application/json" },
@@ -362,7 +434,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     if (!currentProblem || !code) return;
     setExplanationLoading(true);
     try {
-      const res = await fetch('/api/ai/explain', {
+      const res = await fetch('/cognicode/api/ai/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -405,7 +477,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   const renderBottomPanel = (additionalStyles = '') => {
     return (
-      <div className={`w-full h-full overflow-y-auto space-y-3 pb-10 ${additionalStyles}`}>
+      <div className={`w-full h-full min-h-0 flex flex-col overflow-hidden ${additionalStyles}`}>
         {activeTab === "testcases" && (
           <div className="rounded-2xl border border-light-4 dark:border-dark-4 bg-light-2 dark:bg-dark-3 shadow-sm overflow-hidden">
             <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-light-4 dark:border-dark-4 bg-light-3/30 dark:bg-dark-4/20">
@@ -479,8 +551,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         )}
 
         {activeTab === "results" && (
-          <div className="flex flex-col gap-3">
-            <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} />
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden">
+            <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} theme={isDarkMode ? "dark" : "light"} />
 
             {outputDetails?.accepted && (
               <div className="border-t border-light-4 dark:border-dark-4 pt-3">
@@ -559,8 +631,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   };
 
   const renderBottomStrip = () => (
-    <div className="absolute inset-x-2 bottom-0 z-20 pb-2">
-      <div className="h-12 w-full rounded-none rounded-b-lg border border-light-4 dark:border-dark-4 bg-light-2/95 dark:bg-dark-3/95 px-3 text-sm flex items-center gap-3 shadow-sm backdrop-blur-sm">
+    <div className={`w-full shrink-0 pb-1.5 transition-all duration-200 ${activeTab === 'hint' ? 'px-0' : 'px-1'}`}>
+      <div className="h-8 w-full rounded-none rounded-b-lg border border-light-4 dark:border-dark-4 bg-light-2/95 dark:bg-dark-3/95 px-3 text-sm flex items-center gap-3 shadow-sm backdrop-blur-sm">
         <button
           onClick={() => setActiveTab((prev) => (prev === 'hint' ? null : 'hint'))}
           className={`flex items-center gap-1 transition-colors ${activeTab === 'hint'
@@ -603,27 +675,27 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   return (
     <div className="relative w-full h-full min-h-0 flex flex-col overflow-hidden">
-      <div className="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg border border-[#2f2f2f] bg-[#1e1e1e] px-3 py-1 shadow-sm flex-wrap">
+      <div className={`mx-1 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg px-3 py-1 shadow-sm flex-wrap border ${isDarkMode ? 'border-[#2f2f2f] bg-[#1e1e1e] text-gray-300' : 'border-light-4 bg-white/95 text-dark-1'}`}>
         <div className="flex gap-1.5 items-center flex-wrap">
           <div className="flex items-center gap-1">
-            <button onClick={formatCode} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300" title="Format Code">
+            <button onClick={formatCode} className={`rounded-none p-1 transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`} title="Format Code">
               <FiCode size={16} />
             </button>
-            <button onClick={retrieveLastSubmission} disabled={lastCodeLoading} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300 disabled:opacity-50" title="Retrieve Last Submission">
+            <button onClick={retrieveLastSubmission} disabled={lastCodeLoading} className={`rounded-none p-1 transition-colors disabled:opacity-50 ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`} title="Retrieve Last Submission">
               {lastCodeLoading ? <Loader /> : <FiDownload size={16} />}
             </button>
           </div>
-          <div className="h-4 w-[1px] bg-[#333333] mx-1" />
+          <div className={`h-4 w-[1px] mx-1 ${isDarkMode ? 'bg-[#333333]' : 'bg-light-4'}`} />
           <Timer superAlarmEnabled={editorSettings.superAlarm} />
         </div>
         <div className="flex gap-2 items-center">
-          <button onClick={handleResetCode} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300" title="Reset code (Ctrl+Shift+R)">
+          <button onClick={handleResetCode} className={`rounded-none p-1 transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`} title="Reset code (Ctrl+Shift+R)">
             <FiRotateCcw size={16} />
           </button>
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((open) => !open)}
-              className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300"
+              className={`rounded-none p-1 transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`}
               title="Editor settings"
             >
               <FiSettings size={16} />
@@ -784,7 +856,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
               settingsPortalTarget
             )}
           </div>
-          <button onClick={handleFullScreen} className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4">
+          <button onClick={handleFullScreen} className={`rounded-md p-1 transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`}>
             {!isFullScreen ? <FiMaximize size={16} /> : <FiMinimize size={16} />}
           </button>
         </div>
@@ -793,7 +865,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
             onClick={() => handleCompile()}
             disabled={!code}
             title="Run (Ctrl+Enter)"
-            className="px-3 py-1 bg-[#2f2f2f] text-white rounded-none text-xs hover:bg-[#3a3a3a] transition-colors flex items-center justify-center min-w-[50px]"
+            className={`px-3 py-1 rounded-none text-xs transition-colors flex items-center justify-center min-w-[50px] ${isDarkMode ? 'bg-[#2f2f2f] text-white hover:bg-[#3a3a3a]' : 'bg-light-3 text-dark-1 hover:bg-light-4'}`}
           >
             {isCodeRunning ? <Loader /> : "Run"}
           </button>
@@ -802,14 +874,14 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
               onClick={handleSubmit}
               disabled={!code}
               title="Submit (Ctrl+Shift+Enter)"
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-none text-xs transition-colors flex items-center justify-center min-w-[60px]"
+              className={`px-3 py-1 rounded-none text-xs transition-colors flex items-center justify-center min-w-[60px] ${theme.value === 'light' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
             >
               {isCodeSubmitting ? <Loader /> : "Submit"}
             </button>
           )}
         </div>
       </div>
-      <div className="mx-2 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 max-md:hidden overflow-hidden">
+      <div className="mx-1 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 max-md:hidden overflow-hidden">
         <Split
           direction="vertical"
           sizes={activeTab ? [60, 40] : [100, 0]}
@@ -827,12 +899,12 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           </div>
         </Split>
       </div>
-      <div className="mx-2 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 md:hidden overflow-hidden flex flex-col">
+      <div className="mx-1 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 md:hidden overflow-hidden flex flex-col">
         <div className="flex-grow relative min-h-[300px] rounded-t-lg border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
           <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
         </div>
-        <div className={`relative transition-all duration-300 overflow-hidden ${activeTab ? 'h-[350px]' : 'h-10'}`}>
-          <div className="h-full w-full rounded-b-2xl border border-[#2f2f2f] bg-[#1e1e1e] p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] overflow-hidden">
+        <div className={`relative flex flex-1 min-h-0 flex-col transition-all duration-300 overflow-hidden ${activeTab ? 'min-h-[350px]' : 'h-10'}`}>
+          <div className="h-full w-full rounded-b-2xl border border-[#2f2f2f] bg-[#1e1e1e] p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] overflow-hidden flex flex-col min-h-0">
             {activeTab && renderBottomPanel('max-md:pb-2')}
           </div>
         </div>

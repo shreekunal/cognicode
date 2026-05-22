@@ -36,7 +36,7 @@ ${code}
 \`\`\`
 `;
 
-            const res = await fetch('/api/ai/chat', {
+            const res = await fetch('/cognicode/api/ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

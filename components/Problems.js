@@ -5,6 +5,7 @@ import { ImCheckboxChecked } from "react-icons/im";
 import { FiSearch, FiX } from "react-icons/fi";
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { slugify } from '@/utils/slugify';
 
 const Problems = () => {
     const router = useRouter();
@@ -20,7 +21,7 @@ const Problems = () => {
 
     useEffect(() => {
         const fetchProblems = async () => {
-            const response = await fetch('/api/getAllProblems');
+            const response = await fetch('/cognicode/api/getAllProblems');
             const data = await response.json();
             setProblems(data);
         }
@@ -31,7 +32,7 @@ const Problems = () => {
         if (!session?.user?._id) return;
         const fetchSolved = async () => {
             try {
-                const res = await fetch('/api/getUserStats');
+                const res = await fetch('/cognicode/api/getUserStats');
                 const data = await res.json();
                 if (data.ok && data.stats?.solvedProblemIds) {
                     setSolvedIds(new Set(data.stats.solvedProblemIds));
@@ -170,7 +171,7 @@ const Problems = () => {
                                         <td className="p-4 text-center">{index + 1}</td>
                                         <th scope="row" className="px-6 py-4 hover:text-red-500 hover:font-semibold hover:cursor-pointer font-medium whitespace-nowrap transition-all ease-in">
                                             <div className='w-[300px] text-ellipsis overflow-hidden'
-                                                onClick={() => router.push(`/problems/${problem.id}`)}>
+                                                onClick={() => router.push(`/problems/${problem.id}/${slugify(problem.title)}`)}>
                                                 {problem.title}
                                             </div>
                                         </th>

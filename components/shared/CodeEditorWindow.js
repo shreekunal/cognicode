@@ -7,7 +7,7 @@ import { java } from "@codemirror/lang-java";
 import { cpp } from "@codemirror/lang-cpp";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import { EditorView, Decoration, ViewPlugin } from "@codemirror/view";
-import { getIndentUnit } from "@codemirror/language";
+import { getIndentUnit, indentUnit } from "@codemirror/language";
 
 const indentationGuides = ViewPlugin.fromClass(class {
   constructor(view) {
@@ -91,6 +91,7 @@ const CodeEditorWindow = ({ onChange, language, code, theme, fontSize, fontFamil
         onChange={handleEditorChange}
         extensions={[
           language === 'python3' ? python() : language === 'cpp' ? cpp() : language === 'java' ? java() : javascript(),
+          indentUnit.of(language === 'python3' ? "    " : "  "),
           showIndentationGuides ? indentationGuides : []
         ]}
         theme={editorTheme}

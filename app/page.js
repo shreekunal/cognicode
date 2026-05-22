@@ -101,7 +101,7 @@ export default function Home() {
           <div>
             <h1>Code Practice</h1>
             <h2>AI-Powered Growth</h2>
-            <video autoPlay muted loop playsInline poster="/duo/images/page4-img1.webp" src="/duo/Video/section1-video.mp4" />
+            <video autoPlay muted loop playsInline poster="/cognicode/duo/images/page4-img1.webp" src="/cognicode/duo/Video/section1-video.mp4" />
           </div>
         </section>
 
@@ -134,21 +134,21 @@ export default function Home() {
           </p>
 
           <div className="elem">
-            <img className="left img1" src="/duo/images/page4-img1.webp" alt="" />
+            <img className="left img1" src="/cognicode/duo/images/page4-img1.webp" alt="" />
             <div className="text">
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
             </div>
-            <img className="right img2" src="/duo/images/page4-img2.webp" alt="" />
+            <img className="right img2" src="/cognicode/duo/images/page4-img2.webp" alt="" />
           </div>
 
           <div className="elem">
-            <img className="left img3" src="/duo/images/page4-img3.webp" alt="" />
+            <img className="left img3" src="/cognicode/duo/images/page4-img3.webp" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
             </div>
-            <img className="right img4" src="/duo/images/page4-img4.webp" alt="" />
+            <img className="right img4" src="/cognicode/duo/images/page4-img4.webp" alt="" />
           </div>
         </section>
 
@@ -160,23 +160,23 @@ export default function Home() {
                 <span>MEET OUR</span> <span>DEVELOPERS</span>
               </h1>
             </div>
-            <div className="dev-row" data-image="/duo/images/home-mentions-verizon.webp">
+            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-verizon.webp">
               <h4>Dr. Prashant Aggarwal</h4>
               <p><span>Mentor &amp; Guide</span></p>
             </div>
-            <div className="dev-row" data-image="/duo/images/home-mentions-awwwards-honorablemention.webp">
+            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-awwwards-honorablemention.webp">
               <h4>Kunal Singh</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/duo/images/home-mentions-awwwards-mobile.webp">
+            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-awwwards-mobile.webp">
               <h4>Manish Pandey</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/duo/images/home-mentions-mindsparkle.webp">
+            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-mindsparkle.webp">
               <h4>Kunal Malhotra</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/duo/images/home-mentions-orpetron.webp">
+            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-orpetron.webp">
               <h4>Lavish Nehra</h4>
               <p><span>Developer</span></p>
             </div>
