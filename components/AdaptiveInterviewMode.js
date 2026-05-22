@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FiPlay, FiSend, FiChevronRight, FiClock, FiTarget, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiPlay, FiSend, FiChevronRight, FiClock, FiTarget, FiCheckCircle, FiAlertCircle, FiBookOpen, FiZap, FiAlertTriangle } from 'react-icons/fi';
 import CodeEditorWindow from './shared/CodeEditorWindow';
 import LanguagesDropdown from './shared/LanguagesDropdown';
 import ThemeDropdown from './shared/ThemeDropdown';
@@ -9,6 +9,13 @@ import FontSizeDropdown from './shared/FontSizeDropdown';
 import { getStarterForLanguage, languagesData, mockComments } from '@/constants';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
+
+const INTERVIEW_MODES = [
+    { id: 'learning', label: 'Learning', description: 'Unlimited hints, ideal for practice.', hintLimit: Infinity, icon: <FiBookOpen /> },
+    { id: 'standard', label: 'Standard', description: 'Balanced experience, up to 3 hints.', hintLimit: 3, icon: <FiTarget /> },
+    { id: 'strict', label: 'Strict', description: 'High pressure, only 1 hint allowed.', hintLimit: 1, icon: <FiAlertTriangle /> },
+    { id: 'expert', label: 'Expert', description: 'Real simulation, no hints allowed.', hintLimit: 0, icon: <FiZap /> },
+];
 
 function normalizeDifficulty(raw) {
     if (!raw) return 'Easy';
@@ -46,7 +53,7 @@ export default function AdaptiveInterviewMode() {
 
     const [phase, setPhase] = useState('setup');
     const [totalRounds, setTotalRounds] = useState(3);
-    const [strictHints, setStrictHints] = useState(true);
+    const [selectedMode, setSelectedMode] = useState('standard');
     const [startDifficulty, setStartDifficulty] = useState('Easy');
 
     const [roundIndex, setRoundIndex] = useState(0);
@@ -159,6 +166,19 @@ export default function AdaptiveInterviewMode() {
         startRound(1, startDifficulty, []);
     };
 
+    const abortInterview = () => {
+        if (window.confirm('Are you sure you want to abort the interview? All progress in this session will be lost.')) {
+            setPhase('setup');
+            setRoundIndex(0);
+            setCurrentProblem(null);
+            setRoundResults([]);
+            setUsedProblemIds([]);
+            setHint('');
+            setHintCount(0);
+            setRunOutput('');
+        }
+    };
+
     const runCode = async () => {
         if (!code) return;
         setIsRunning(true);
@@ -184,8 +204,10 @@ export default function AdaptiveInterviewMode() {
 
     const requestHint = async () => {
         if (!currentProblem || !code) return;
-        if (strictHints && hintCount >= 1) {
-            setHint('Strict mode allows only one hint per round.');
+        
+        const modeData = INTERVIEW_MODES.find(m => m.id === selectedMode);
+        if (hintCount >= modeData.hintLimit) {
+            setHint(`${modeData.label} mode allows only ${modeData.hintLimit} hint${modeData.hintLimit === 1 ? '' : 's'} per round.`);
             return;
         }
 
@@ -343,52 +365,75 @@ export default function AdaptiveInterviewMode() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Practice real interview pressure with adaptive difficulty and AI scorecards.</p>
                     </div>
                     {phase === 'live' && (
-                        <div className="px-3 py-2 rounded-lg bg-light-3 dark:bg-dark-4 text-sm flex items-center gap-2">
-                            <FiClock />
-                            Round time: {formatDuration(elapsedSeconds)}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={abortInterview}
+                                className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-900/10 text-xs font-medium transition-colors"
+                            >
+                                Abort Interview
+                            </button>
+                            <div className="px-3 py-2 rounded-lg bg-light-3 dark:bg-dark-4 text-sm flex items-center gap-2">
+                                <FiClock />
+                                Round time: {formatDuration(elapsedSeconds)}
+                            </div>
                         </div>
                     )}
                 </div>
 
                 {phase === 'setup' && (
-                    <div className="mt-4 grid sm:grid-cols-3 gap-3">
-                        <label className="text-sm">
-                            <span className="block mb-1 text-gray-600 dark:text-gray-300">Rounds</span>
-                            <select
-                                className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-transparent p-2"
-                                value={totalRounds}
-                                onChange={(e) => setTotalRounds(Number(e.target.value))}
-                            >
-                                {[2, 3, 4, 5].map((value) => <option key={value} value={value}>{value} rounds</option>)}
-                            </select>
-                        </label>
+                    <div className="mt-4 space-y-6">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <label className="text-sm">
+                                <span className="block mb-1 text-gray-600 dark:text-gray-300 font-semibold">Number of Rounds</span>
+                                <select
+                                    className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-3 p-2 dark:text-light-1 outline-none"
+                                    value={totalRounds}
+                                    onChange={(e) => setTotalRounds(Number(e.target.value))}
+                                >
+                                    {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value} className="dark:bg-dark-3">{value} round{value > 1 ? 's' : ''}</option>)}
+                                </select>
+                            </label>
 
-                        <label className="text-sm">
-                            <span className="block mb-1 text-gray-600 dark:text-gray-300">Start difficulty</span>
-                            <select
-                                className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-transparent p-2"
-                                value={startDifficulty}
-                                onChange={(e) => setStartDifficulty(e.target.value)}
-                            >
-                                {DIFFICULTIES.map((value) => <option key={value} value={value}>{value}</option>)}
-                            </select>
-                        </label>
+                            <label className="text-sm">
+                                <span className="block mb-1 text-gray-600 dark:text-gray-300 font-semibold">Starting Difficulty</span>
+                                <select
+                                    className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-3 p-2 dark:text-light-1 outline-none"
+                                    value={startDifficulty}
+                                    onChange={(e) => setStartDifficulty(e.target.value)}
+                                >
+                                    {DIFFICULTIES.map((value) => <option key={value} value={value} className="dark:bg-dark-3">{value}</option>)}
+                                </select>
+                            </label>
+                        </div>
 
-                        <label className="text-sm flex items-center gap-2 mt-6">
-                            <input
-                                type="checkbox"
-                                checked={strictHints}
-                                onChange={(e) => setStrictHints(e.target.checked)}
-                            />
-                            Strict mode (1 hint per round)
-                        </label>
+                        <div>
+                            <span className="block mb-3 text-gray-600 dark:text-gray-300 font-semibold text-sm">Select Interview Mode</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {INTERVIEW_MODES.map((m) => (
+                                    <button
+                                        key={m.id}
+                                        onClick={() => setSelectedMode(m.id)}
+                                        className={`flex flex-col p-3 rounded-xl border text-left transition-all ${selectedMode === m.id
+                                            ? 'bg-red-50 border-red-500 ring-1 ring-red-500 dark:bg-red-900/10 dark:border-red-600'
+                                            : 'bg-white border-light-4 hover:border-gray-400 dark:bg-dark-3 dark:border-dark-4 dark:hover:border-gray-500'
+                                            }`}
+                                    >
+                                        <div className={`text-lg mb-1 ${selectedMode === m.id ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                            {m.icon}
+                                        </div>
+                                        <span className={`text-sm font-bold ${selectedMode === m.id ? 'text-red-700 dark:text-red-400' : 'text-dark-1 dark:text-light-1'}`}>{m.label}</span>
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">{m.description}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                        <div className="sm:col-span-3 flex justify-end">
+                        <div className="flex justify-center pt-2">
                             <button
                                 onClick={startInterview}
-                                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm flex items-center gap-2"
+                                className="px-8 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-lg hover:shadow-red-500/20 flex items-center gap-2"
                             >
-                                <FiPlay /> Start Interview
+                                <FiPlay fill="currentColor" /> Start Interview
                             </button>
                         </div>
                     </div>
@@ -410,7 +455,12 @@ export default function AdaptiveInterviewMode() {
                             </div>
 
                             <div className="rounded-xl border border-light-4 dark:border-dark-4 p-4 space-y-3">
-                                <h4 className="font-semibold text-sm dark:text-light-1">Round Controls</h4>
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-semibold text-sm dark:text-light-1">Round Controls</h4>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
+                                        {selectedMode}
+                                    </span>
+                                </div>
                                 <div className="flex gap-2 flex-wrap">
                                     <LanguagesDropdown onSelectChange={handleLanguageChange} value={language} />
                                     <ThemeDropdown handleThemeChange={setTheme} />
@@ -420,7 +470,7 @@ export default function AdaptiveInterviewMode() {
                                     onClick={requestHint}
                                     className="w-full px-3 py-2 rounded-lg border border-light-4 dark:border-dark-4 text-sm hover:bg-light-3 dark:hover:bg-dark-4"
                                 >
-                                    Get Hint ({hintCount}{strictHints ? '/1' : ''})
+                                    Get Hint ({hintCount}{INTERVIEW_MODES.find(m => m.id === selectedMode).hintLimit === Infinity ? '/∞' : `/${INTERVIEW_MODES.find(m => m.id === selectedMode).hintLimit}`})
                                 </button>
                                 {hint && <p className="text-xs text-gray-600 dark:text-gray-300 bg-light-3 dark:bg-dark-4 p-2 rounded-lg">{hint}</p>}
                             </div>
@@ -438,12 +488,12 @@ export default function AdaptiveInterviewMode() {
                             />
 
                             <label className="block text-sm">
-                                <span className="block mb-1 text-gray-600 dark:text-gray-300">Custom Input</span>
+                                <span className="block mb-1 text-gray-600 dark:text-gray-300 font-semibold">Custom Input</span>
                                 <textarea
                                     value={customInput}
                                     onChange={(e) => setCustomInput(e.target.value)}
                                     rows={4}
-                                    className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-transparent p-2"
+                                    className="w-full rounded-lg border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-2 p-2 dark:text-light-1 focus:outline-none focus:ring-1 focus:ring-red-500 transition-all"
                                     placeholder="Enter test input"
                                 />
                             </label>
@@ -452,20 +502,20 @@ export default function AdaptiveInterviewMode() {
                                 <button
                                     onClick={runCode}
                                     disabled={isRunning}
-                                    className="px-4 py-2 rounded-lg border border-light-4 dark:border-dark-4 text-sm hover:bg-light-3 dark:hover:bg-dark-4"
+                                    className="px-4 py-2 rounded-lg border border-light-4 dark:border-dark-4 text-sm hover:bg-light-3 dark:hover:bg-dark-4 transition-colors"
                                 >
                                     <span className="inline-flex items-center gap-2"><FiPlay />{isRunning ? 'Running...' : 'Run'}</span>
                                 </button>
                                 <button
                                     onClick={submitRound}
                                     disabled={isSubmitting}
-                                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm"
+                                    className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-all shadow-md active:scale-95"
                                 >
                                     <span className="inline-flex items-center gap-2"><FiSend />{isSubmitting ? 'Submitting...' : 'Submit Round'}</span>
                                 </button>
                             </div>
 
-                            <div className="rounded-lg bg-light-3 dark:bg-dark-4 p-3 text-sm whitespace-pre-wrap min-h-[80px]">
+                            <div className="rounded-lg bg-light-3 dark:bg-dark-4 p-3 text-sm whitespace-pre-wrap min-h-[80px] font-mono">
                                 {runOutput || 'Execution output will appear here.'}
                             </div>
                         </div>
@@ -480,12 +530,15 @@ export default function AdaptiveInterviewMode() {
                                 onClick={() => setPhase('setup')}
                                 className="px-3 py-2 rounded-lg border border-light-4 dark:border-dark-4 text-sm hover:bg-light-3 dark:hover:bg-dark-4"
                             >
-                                Start New Round
+                                Start New Session
                             </button>
                         </div>
 
                         {buildingScorecard && (
-                            <div className="text-sm text-gray-500 dark:text-gray-300">Generating AI scorecard...</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-300 flex items-center gap-2">
+                                <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full" />
+                                Generating AI scorecard...
+                            </div>
                         )}
 
                         {!buildingScorecard && scorecard && (
@@ -509,7 +562,7 @@ export default function AdaptiveInterviewMode() {
                                     </div>
                                 </div>
 
-                                <p className="text-sm text-gray-600 dark:text-gray-300">{scorecard.summary}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{scorecard.summary}</p>
 
                                 <div className="grid lg:grid-cols-2 gap-3">
                                     <div className="rounded-lg border border-light-4 dark:border-dark-4 p-3">
@@ -527,14 +580,14 @@ export default function AdaptiveInterviewMode() {
                                 </div>
 
                                 <div className="rounded-lg border border-light-4 dark:border-dark-4 p-3">
-                                    <h4 className="font-semibold text-sm mb-2 inline-flex items-center gap-2"><FiTarget /> 7-Day Plan</h4>
+                                    <h4 className="font-semibold text-sm mb-2 inline-flex items-center gap-2"><FiTarget className="text-red-500" /> 7-Day Plan</h4>
                                     <ul className="text-sm list-disc pl-5 space-y-1">
                                         {(scorecard.nextWeekPlan || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                     </ul>
                                 </div>
 
                                 <div className="rounded-lg border border-light-4 dark:border-dark-4 p-3">
-                                    <h4 className="font-semibold text-sm mb-2 inline-flex items-center gap-2"><FiChevronRight /> Follow-up Interview Questions</h4>
+                                    <h4 className="font-semibold text-sm mb-2 inline-flex items-center gap-2"><FiChevronRight className="text-blue-500" /> Follow-up Interview Questions</h4>
                                     <ul className="text-sm list-disc pl-5 space-y-1">
                                         {(scorecard.followUps || []).map((item, idx) => <li key={idx}>{item}</li>)}
                                     </ul>
@@ -551,8 +604,14 @@ export default function AdaptiveInterviewMode() {
                             <div className="space-y-2">
                                 {roundResults.map((r) => (
                                     <div key={`${r.round}-${r.problemId}`} className="text-sm flex items-center justify-between rounded-md bg-light-3 dark:bg-dark-4 p-2">
-                                        <span>R{r.round} - {r.title} ({r.difficulty})</span>
-                                        <span>{r.accepted ? 'Accepted' : 'Rejected'} | {r.passedTestCases}/{r.totalTestCases} | {formatDuration(r.timeTakenSec)}</span>
+                                        <span className="font-medium">R{r.round} - {r.title} ({r.difficulty})</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-bold ${r.accepted ? 'text-green-600' : 'text-red-600'}`}>{r.accepted ? 'Accepted' : 'Rejected'}</span>
+                                            <span className="text-gray-400">|</span>
+                                            <span>{r.passedTestCases}/{r.totalTestCases}</span>
+                                            <span className="text-gray-400">|</span>
+                                            <span>{formatDuration(r.timeTakenSec)}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

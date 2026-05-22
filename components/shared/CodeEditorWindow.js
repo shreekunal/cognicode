@@ -7,7 +7,7 @@ import { java } from "@codemirror/lang-java";
 import { cpp } from "@codemirror/lang-cpp";
 import ReactCodeMirror from "@uiw/react-codemirror";
 
-const CodeEditorWindow = ({ onChange, language, code, theme, fontSize, forProblemsPage=true, isInterview=false }) => {
+const CodeEditorWindow = ({ onChange, language, code, theme, fontSize, fontFamily, showLineNumbers = true, forProblemsPage = true, isInterview = false }) => {
 
   const handleEditorChange = (value) => {
     if (isInterview) onChange(value);
@@ -15,14 +15,15 @@ const CodeEditorWindow = ({ onChange, language, code, theme, fontSize, forProble
   };
 
   return (
-    <div className={`flex flex-col !w-full justify-start items-end overlay rounded-md overflow-hidden shadow-4xl bg-dark-1 ${forProblemsPage? 'min-h-[20%]' : 'h-[500px]'} max-md:h-[500px]`}>
-        <ReactCodeMirror
-          value={code}
-          onChange={handleEditorChange}
-          extensions={[language==='python3'? python() : language==='cpp'? cpp() : language==='java'? java() : javascript()]}
-          theme={theme==='dark'? vscodeDark : eclipse}
-          style={{ fontSize: fontSize }}
-        />
+    <div className={`flex flex-col !w-full justify-start items-end overlay rounded-xl overflow-hidden shadow-4xl bg-dark-1 ${forProblemsPage ? 'min-h-[20%]' : 'h-[500px]'} max-md:h-[500px]`}>
+      <ReactCodeMirror
+        value={code}
+        onChange={handleEditorChange}
+        extensions={[language === 'python3' ? python() : language === 'cpp' ? cpp() : language === 'java' ? java() : javascript()]}
+        theme={theme === 'dark' ? vscodeDark : eclipse}
+        basicSetup={{ lineNumbers: showLineNumbers }}
+        style={{ fontSize: fontSize, fontFamily }}
+      />
     </div>
   );
 };

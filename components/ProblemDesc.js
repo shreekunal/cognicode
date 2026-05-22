@@ -3,12 +3,12 @@ import { useParams } from 'next/navigation'
 import { AiOutlineLike, AiFillLike, AiOutlineDislike, AiFillDislike } from "react-icons/ai";
 import { FaRegStar, FaStar } from "react-icons/fa";
 import { TiInputChecked } from "react-icons/ti";
-import { FiHelpCircle, FiCompass, FiTarget, FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase } from "react-icons/fi";
-import { BsLightbulb } from "react-icons/bs";
+import { FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import TextSolutions from './TextSolutions';
 import AIRecommendation from './AIRecommendation';
+import AskCogni from './AskCogni';
 
-const ProblemDesc = ({ problems }) => {
+const ProblemDesc = ({ problems, code, language }) => {
 
     const params = useParams();
     const [clickedProblems, setClickedProblems] = useState();
@@ -16,61 +16,28 @@ const ProblemDesc = ({ problems }) => {
     const [like, setLike] = useState(false);
     const [disLike, setDisLike] = useState(false);
     const [favorite, setFavorite] = useState(false);
-    const [hintLevel, setHintLevel] = useState(0);
-    const [hints, setHints] = useState([]);
-    const [hintLoading, setHintLoading] = useState(false);
-    const [hintError, setHintError] = useState(null);
     const [activeTab, setActiveTab] = useState('description');
     const [submissions, setSubmissions] = useState([]);
     const [submissionsLoading, setSubmissionsLoading] = useState(false);
     const [expandedSubmission, setExpandedSubmission] = useState(null);
+
     const difficultyColors = {
-        'Hard': 'bg-red-700',
-        'Medium': 'bg-red-500',
-        'Easy': 'bg-red-300 text-red-900'
-    };
+        'Easy': 'bg-green-500',
+        'Medium': 'bg-yellow-500',
+        'Hard': 'bg-red-500'
+    }
 
     useEffect(() => {
         if (problems) {
-            problems.forEach((problem, index) => {
+            problems.map((problem) => {
                 if (problem.id === params.id) {
-                    setClickedProblems(problem);
-                    setClickedProblemId(problem._id);
+                    setClickedProblems(problem)
+                    setClickedProblemId(problem.id)
                 }
             })
         }
 
-    }, [problems]);
-
-    const fetchHint = async () => {
-        if (hintLevel >= 3) return;
-        const nextLevel = hintLevel + 1;
-        setHintLoading(true);
-        setHintError(null);
-        try {
-            const res = await fetch('/api/ai/hint', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    problemTitle: clickedProblems?.title || '',
-                    problemStatement: (clickedProblems?.problemStatement || '').replace(/<[^>]*>/g, ''),
-                    difficulty: clickedProblems?.difficulty || 'Medium',
-                    hintLevel: nextLevel,
-                }),
-            });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error || 'Failed to get hint');
-            setHints(prev => [...prev, { level: nextLevel, text: data.hint }]);
-            setHintLevel(nextLevel);
-        } catch (err) {
-            setHintError(err.message);
-        } finally {
-            setHintLoading(false);
-        }
-    };
-
-    const hintIcons = [<BsLightbulb key="nudge" className="inline" />, <FiCompass key="approach" className="inline" />, <FiTarget key="strong" className="inline" />];
-    const hintLabels = ['Nudge', 'Approach', 'Strong Hint'];
+    }, [problems, params.id]);
 
     const fetchSubmissions = async () => {
         if (!params?.id) return;
@@ -78,9 +45,14 @@ const ProblemDesc = ({ problems }) => {
         try {
             const res = await fetch(`/api/getSubmissions?problemId=${params.id}`);
             const data = await res.json();
-            if (data.ok) setSubmissions(data.submissions || []);
-        } catch (e) { /* ignore */ }
-        finally { setSubmissionsLoading(false); }
+            if (data.ok) {
+                setSubmissions(data.submissions);
+            }
+        } catch (err) {
+            console.error("Failed to fetch submissions:", err);
+        } finally {
+            setSubmissionsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -90,7 +62,7 @@ const ProblemDesc = ({ problems }) => {
     }, [activeTab]);
 
     return (
-        <div className='w-full flex flex-col overflow-x-hidden overflow-y-auto px-1'>
+        <div className='w-full h-full min-h-0 flex flex-col overflow-x-hidden overflow-hidden px-1'>
             <div className='flex h-11 w-full items-center pt-2 bg-light-3 dark:bg-dark-4 rounded-t-lg px-2'>
                 <button
                     onClick={() => setActiveTab('description')}
@@ -99,13 +71,19 @@ const ProblemDesc = ({ problems }) => {
                     Description
                 </button>
                 <button
+                    onClick={() => setActiveTab('ask-cogni')}
+                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                >
+                    Ask Cogni
+                </button>
+                <button
                     onClick={() => setActiveTab('submissions')}
                     className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'submissions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
                 >
                     Submissions
                 </button>
             </div>
-            <div className='bg-light-2 dark:bg-dark-3 dark:text-light-1 rounded-b-lg flex-grow'>
+            <div className='bg-light-2 dark:bg-dark-3 dark:text-light-1 rounded-b-lg flex-grow min-h-0 overflow-y-auto'>
 
                 {/* ===== DESCRIPTION TAB ===== */}
                 <div className={activeTab !== 'description' ? 'hidden' : ''}>
@@ -159,43 +137,17 @@ const ProblemDesc = ({ problems }) => {
                         )}
                     </div>
 
-                    {/* Hint Section */}
-                    <div className='mt-4 px-5 py-3 border-t border-light-3 dark:border-dark-4'>
-                        <div className='flex items-center justify-between mb-2'>
-                            <h3 className='font-bold flex items-center gap-2'>
-                                <FiHelpCircle className='text-red-500' /> Need a Hint?
-                            </h3>
-                            <button
-                                onClick={fetchHint}
-                                disabled={hintLoading || hintLevel >= 3}
-                                className='px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5'
-                            >
-                                {hintLoading ? 'Thinking...' : hintLevel >= 3 ? 'All hints used' : <>{hintIcons[hintLevel]} {hintLabels[hintLevel]}</>}
-                            </button>
-                        </div>
-                        {/* Hint level dots */}
-                        <div className='flex gap-1.5 mb-2'>
-                            {[1, 2, 3].map(l => (
-                                <div key={l} className={`h-1.5 flex-1 rounded-full ${l <= hintLevel ? 'bg-red-500' : 'bg-gray-300 dark:bg-dark-4'}`} />
-                            ))}
-                        </div>
-                        {hintError && (
-                            <div className='text-sm text-red-500 mb-2'>{hintError}</div>
-                        )}
-                        {hints.map((h, i) => (
-                            <div key={i} className='mb-2 p-3 bg-light-3 dark:bg-dark-4 rounded-lg text-sm'>
-                                <span className='font-semibold text-light-1-contrast dark:text-light-4'>Hint {h.level}: </span>
-                                {h.text}
-                            </div>
-                        ))}
-                    </div>
-
                     {/* AI Recommendation Section */}
                     <div className='mt-6 px-5 py-4 border-t border-light-3 dark:border-dark-4'>
                         <AIRecommendation
                             currentDifficulty={clickedProblems?.difficulty || 'Medium'}
                         />
                     </div>
+                </div>
+
+                {/* ===== ASK COGNI TAB ===== */}
+                <div className={activeTab !== 'ask-cogni' ? 'hidden' : 'h-full'}>
+                    <AskCogni problem={clickedProblems} code={code} language={language} />
                 </div>
 
                 {/* ===== SUBMISSIONS TAB ===== */}
@@ -215,42 +167,29 @@ const ProblemDesc = ({ problems }) => {
                     {submissions.length > 0 && (
                         <div className='space-y-2'>
                             {submissions.map((sub, i) => (
-                                <div key={i} className='rounded-lg border border-light-4 dark:border-dark-4 overflow-hidden'>
-                                    <button
+                                <div key={i} className='border border-light-4 dark:border-dark-4 rounded-lg overflow-hidden'>
+                                    <div 
+                                        className='flex items-center justify-between px-4 py-3 bg-light-3/50 dark:bg-dark-4/50 cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 transition-colors'
                                         onClick={() => setExpandedSubmission(expandedSubmission === i ? null : i)}
-                                        className='w-full flex items-center justify-between px-4 py-3 hover:bg-light-3 dark:hover:bg-dark-4 transition-colors'
                                     >
-                                        <div className='flex items-center gap-3'>
-                                            {sub.status === 'accepted' ? (
-                                                <FiCheckCircle className='text-green-500' size={18} />
-                                            ) : (
-                                                <FiXCircle className='text-red-500' size={18} />
-                                            )}
-                                            <span className={`text-sm font-semibold ${sub.status === 'accepted' ? 'text-green-500' : 'text-red-500'}`}>
-                                                {sub.status === 'accepted' ? 'Accepted' : 'Rejected'}
+                                        <div className='flex items-center gap-4'>
+                                            <span className={`text-xs font-bold uppercase tracking-wider ${sub.isAccepted === 'accepted' ? 'text-green-500' : 'text-red-500'}`}>
+                                                {sub.isAccepted === 'accepted' ? 'Accepted' : 'Rejected'}
                                             </span>
-                                            <span className='text-xs text-gray-400'>
-                                                {sub.passedTestCases} test cases passed
+                                            <span className='text-xs text-gray-500 dark:text-gray-400'>
+                                                {new Date(sub.submittedAt).toLocaleString()}
+                                            </span>
+                                            <span className='text-[10px] bg-light-4 dark:bg-dark-3 px-2 py-0.5 rounded uppercase font-bold text-gray-500 dark:text-gray-400'>
+                                                {sub.language}
                                             </span>
                                         </div>
-                                        <div className='flex items-center gap-3 text-xs text-gray-400'>
-                                            <span className='flex items-center gap-1'><FiClock size={12} /> {new Date(sub.submittedAt).toLocaleString()}</span>
-                                        </div>
-                                    </button>
-
+                                        {expandedSubmission === i ? <FiChevronUp /> : <FiChevronDown />}
+                                    </div>
                                     {expandedSubmission === i && (
-                                        <div className='border-t border-light-4 dark:border-dark-4 p-4 space-y-3'>
-                                            <div className='flex gap-4 text-xs'>
-                                                <span className='flex items-center gap-1.5 px-2 py-1 bg-light-3 dark:bg-dark-4 rounded'>
-                                                    <FiCpu size={12} /> CPU: {sub.cpuTime}ms
-                                                </span>
-                                                <span className='flex items-center gap-1.5 px-2 py-1 bg-light-3 dark:bg-dark-4 rounded'>
-                                                    <FiDatabase size={12} /> Memory: {sub.memory}KB
-                                                </span>
-                                            </div>
-                                            <div className='bg-light-3 dark:bg-dark-4 rounded-lg p-3 overflow-auto max-h-64'>
-                                                <pre className='text-xs font-mono whitespace-pre-wrap'>{sub.code}</pre>
-                                            </div>
+                                        <div className='p-4 bg-white dark:bg-dark-2 border-t border-light-4 dark:border-dark-4'>
+                                            <pre className='font-mono text-xs text-dark-1 dark:text-light-1 overflow-x-auto p-3 bg-light-2 dark:bg-dark-3 rounded'>
+                                                {sub.code}
+                                            </pre>
                                         </div>
                                     )}
                                 </div>
@@ -258,7 +197,6 @@ const ProblemDesc = ({ problems }) => {
                         </div>
                     )}
                 </div>
-
             </div>
         </div>
     )

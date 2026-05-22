@@ -1,10 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { MdAlarm } from "react-icons/md";
-import { RiTimerFlashLine } from "react-icons/ri";
+import { FiClock, FiRefreshCw } from "react-icons/fi";
 
-const Timer = () => {
+const DEFAULT_COUNTDOWN_SECONDS = 60 * 60;
+
+const Timer = ({ superAlarmEnabled = false }) => {
   const [showTimer, setShowTimer] = useState(false);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(DEFAULT_COUNTDOWN_SECONDS);
+  const [warningPlayed, setWarningPlayed] = useState(false);
+  const [endPlayed, setEndPlayed] = useState(false);
+
+  const playTone = (frequency) => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+      gainNode.gain.value = 0.08;
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+        audioContext.close?.();
+      }, 220);
+    } catch (error) {
+      // Ignore autoplay/audio-context failures.
+    }
+  };
 
   // Format timer into : hh:mm:ss format
   const formatTime = (time) => {
@@ -12,40 +37,65 @@ const Timer = () => {
     const minutes = Math.floor((time % 3600) / 60);
     const seconds = time % 60;
 
-    return `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes
-      }:${seconds < 10 ? "0" + seconds : seconds}`;
+    return `${hours > 0 ? hours + ":" : ""}${minutes < 10 ? "0" + minutes : minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
   };
 
   useEffect(() => {
     let intervalId;
-
-    // increment the interval every second
     if (showTimer) {
       intervalId = setInterval(() => {
-        setTime((time) => time + 1);
+        setTime((currentTime) => Math.max(0, currentTime - 1));
       }, 1000);
     }
-
     return () => clearInterval(intervalId);
   }, [showTimer]);
 
+  useEffect(() => {
+    if (!showTimer) return;
+
+    if (superAlarmEnabled && time === 10 * 60 && !warningPlayed) {
+      playTone(880);
+      setWarningPlayed(true);
+    }
+
+    if (superAlarmEnabled && time === 0 && !endPlayed) {
+      playTone(440);
+      setEndPlayed(true);
+      setShowTimer(false);
+    }
+  }, [showTimer, superAlarmEnabled, time, warningPlayed, endPlayed]);
+
+  const resetTimer = () => {
+    setShowTimer(false);
+    setTime(DEFAULT_COUNTDOWN_SECONDS);
+    setWarningPlayed(false);
+    setEndPlayed(false);
+  };
+
   return (
-    <div>
+    <div className="flex items-center">
       {showTimer ? (
         <div
-          className="flex items-center justify-center rounded-lg cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 hover:border-light-4 py-1 px-2"
-          onClick={() => {
-            setShowTimer(false);
-            setTime(0);
-          }}
+          className="flex items-center gap-1.5 rounded-md cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 p-1 transition-colors group"
+          onClick={resetTimer}
+          title="Reset Timer"
         >
-          <div>{formatTime(time)}</div>
-          <RiTimerFlashLine size={24} className="text-dark-4 dark:text-light-4" />
+          <div className="text-[11px] font-mono text-dark-4 dark:text-light-4 leading-none">{formatTime(time)}</div>
+          <FiRefreshCw size={14} className="text-dark-4 dark:text-light-4 group-hover:rotate-180 transition-transform duration-500" />
         </div>
       ) : (
-        <div className="flex items-center justify-center rounded-lg cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 hover:border-light-4 py-1 px-1">
-          <MdAlarm size={24} className="text-dark-4 dark:text-light-4" onClick={() => setShowTimer(true)} />
-        </div>
+        <button
+          className="flex items-center justify-center rounded-md cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 p-1 transition-colors"
+          onClick={() => {
+            setTime(DEFAULT_COUNTDOWN_SECONDS);
+            setWarningPlayed(false);
+            setEndPlayed(false);
+            setShowTimer(true);
+          }}
+          title="Start Countdown"
+        >
+          <FiClock size={16} className="text-dark-4 dark:text-light-4" />
+        </button>
       )}
     </div>
   );
