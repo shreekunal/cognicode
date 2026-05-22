@@ -10,8 +10,9 @@
     "lint": "next lint",
     "init-db": "node utils/initDatabase.js",
     "python": "cd python-backend && python3 main.py",
-    "dev:all": "concurrently -n next,python -c blue,yellow \"npm run dev\" \"npm run python\"",
-    "stop": "pkill -f 'python3 main.py' ; echo 'Stopped all servers'"
+    "mongodb": "sudo systemctl enable mongod && sudo systemctl start mongod",
+    "dev:all": "concurrently -n mongodb,next,python -c green,blue,yellow \"npm run mongodb\" \"npm run dev\" \"npm run python\"",
+    "stop": "pkill -f 'next dev' ; pkill -f 'python3 main.py' ; sudo systemctl stop mongod ; echo 'Stopped all servers'"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",

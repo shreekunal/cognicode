@@ -23,6 +23,7 @@ stop_servers() {
   echo -e "${RED}Stopping all servers...${NC}"
   pkill -f "next dev" 2>/dev/null
   pkill -f "python3 main.py" 2>/dev/null
+  sudo systemctl stop mongod 2>/dev/null
   echo -e "${GREEN}All servers stopped.${NC}"
 }
 
@@ -32,6 +33,8 @@ check_status() {
   pgrep -f "next dev" >/dev/null && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
   echo -n "  Python Backend : "
   pgrep -f "python3 main.py" >/dev/null && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
+  echo -n "  MongoDB        : "
+  systemctl is-active --quiet mongod && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}STOPPED${NC}"
 }
 
 start_servers() {
@@ -40,8 +43,18 @@ start_servers() {
   echo -e "${BLUE}==============================================${NC}"
   echo ""
 
+  # ------ MongoDB ------
+  echo -e "${YELLOW}[1/3] Starting MongoDB...${NC}"
+  sudo systemctl enable mongod
+  sudo systemctl start mongod
+  if systemctl is-active --quiet mongod; then
+    echo -e "${GREEN}  ✓ MongoDB running${NC}"
+  else
+    echo -e "${RED}  ✗ MongoDB failed to start${NC}"
+  fi
+
   # ------ Python AI Backend ------
-  echo -e "${YELLOW}[1/2] Starting Python AI Backend (port 8000)...${NC}"
+  echo -e "${YELLOW}[2/3] Starting Python AI Backend (port 8000)...${NC}"
   cd "$ROOT_DIR/python-backend"
   if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
@@ -58,7 +71,7 @@ start_servers() {
   fi
 
   # ------ Next.js ------
-  echo -e "${YELLOW}[2/2] Starting Next.js dev server (port 3000)...${NC}"
+  echo -e "${YELLOW}[3/3] Starting Next.js dev server (port 3000)...${NC}"
   cd "$ROOT_DIR"
   npx next dev &
   NEXT_PID=$!
@@ -77,6 +90,7 @@ start_servers() {
   echo ""
   echo -e "  ${GREEN}Next.js${NC}          → http://localhost:3000"
   echo -e "  ${GREEN}Python Backend${NC}   → http://localhost:8000"
+  echo -e "  ${GREEN}MongoDB${NC}          → Running on default port"
   echo ""
   echo -e "  Stop all:  ${YELLOW}./start-all.sh --stop${NC}"
   echo -e "  Status:    ${YELLOW}./start-all.sh --status${NC}"
