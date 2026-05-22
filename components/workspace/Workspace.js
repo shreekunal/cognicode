@@ -9,7 +9,7 @@ import Confetti from "react-confetti";
 const Workspace = ({ problems }) => {
 
 	const [submitted, setSubmitted] = useState(false);
-	
+
 	return (
 		<>
 			{submitted && <Confetti gravity={0.3} tweenDuration={5000} />}

@@ -68,9 +68,9 @@ export default function ChatTutor() {
 
     // Markdown rendering with react-markdown
     const markdownComponents = {
-        h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 dark:text-light-1">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-lg font-bold mt-3 mb-2 dark:text-light-1">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-1 dark:text-light-1">{children}</h3>,
+        h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 text-gray-900 dark:text-light-1">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-lg font-bold mt-3 mb-2 text-gray-900 dark:text-light-1">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-1 text-gray-900 dark:text-light-1">{children}</h3>,
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
@@ -93,7 +93,7 @@ export default function ChatTutor() {
                 <div className="my-2 rounded-lg overflow-hidden">
                     {lang && <div className="bg-gray-700 text-gray-300 text-xs px-3 py-1 font-mono">{lang}</div>}
                     <pre className="bg-gray-900 text-gray-100 p-3 overflow-x-auto text-sm">
-                        <code>{children}</code>
+                        <code className="!bg-transparent !border-0 !text-inherit !p-0 !m-0 !rounded-none !font-mono !whitespace-pre-wrap">{children}</code>
                     </pre>
                 </div>
             );
@@ -113,7 +113,7 @@ export default function ChatTutor() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-light-4 dark:border-dark-4">
                 <div className="flex items-center gap-2">
                     <BsStars className="text-red-500" size={22} />
-                    <h1 className="text-lg font-bold dark:text-light-1">Learn with AI</h1>
+                    <h1 className="text-lg font-bold text-gray-900 dark:text-light-1">Learn with AI</h1>
                     <span className="text-xs text-gray-400 ml-2">Ask anything about programming & DSA</span>
                 </div>
                 {messages.length > 0 && (
@@ -129,7 +129,7 @@ export default function ChatTutor() {
                     <div className="flex flex-col items-center justify-center h-full gap-6">
                         <div className="text-center">
                             <BsStars className="text-red-500 mx-auto mb-3" size={40} />
-                            <h2 className="text-2xl font-bold dark:text-light-1 mb-2">CogniCode AI Tutor</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-light-1 mb-2">CogniCode AI Tutor</h2>
                             <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md">
                                 Your personal programming teacher. Ask about data structures, algorithms,
                                 concepts, or any coding topic — I'll explain with examples and code.
@@ -153,7 +153,7 @@ export default function ChatTutor() {
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
                             ? 'bg-red-600 text-white rounded-br-md whitespace-pre-wrap'
-                            : 'bg-light-3 dark:bg-dark-4 text-dark-1 dark:text-light-1 rounded-bl-md'
+                            : 'bg-white dark:bg-dark-4 text-gray-900 dark:text-light-1 border border-light-4 dark:border-dark-4 rounded-bl-md'
                             }`}>
                             {msg.role === 'assistant' ? renderContent(msg.content) : msg.content}
                         </div>
