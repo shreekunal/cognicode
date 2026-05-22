@@ -114,6 +114,12 @@ class ExplainRequest(BaseModel):
     language: str = "python"
 
 
+class MCQRequest(BaseModel):
+    topics: List[str]
+    count: int = 5
+    difficulty: str = "Medium"
+
+
 class ChatMessage(BaseModel):
     role: str  # "user" or "assistant"
     content: str
@@ -1059,6 +1065,58 @@ def explain_solution(request: ExplainRequest, req: Request):
 
         result["remaining"] = llm_limiter.remaining(client_ip)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mcq")
+def generate_mcq(request: MCQRequest, req: Request):
+    """Generate Multiple Choice Questions using LLM."""
+    if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="LLM not configured")
+
+    client_ip = req.client.host if req.client else "unknown"
+    if not llm_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a minute.")
+
+    prompt = (
+        f"Generate {request.count} professional technical multiple-choice questions (MCQs) for a software engineering interview.\n"
+        f"Topics: {', '.join(request.topics)}\n"
+        f"Difficulty: {request.difficulty}\n\n"
+        f"Each question must have:\n"
+        f"1. A clear question text\n"
+        f"2. 4 distinct options (A, B, C, D)\n"
+        f"3. The correct option letter (A, B, C, or D)\n"
+        f"4. A brief explanation of the correct answer\n\n"
+        f"Return the response as a JSON array of objects with keys: question, options (object with A, B, C, D), correctOption, explanation."
+    )
+
+    try:
+        resp = openai.ChatCompletion.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "You are a senior technical interviewer. Respond only with valid JSON array."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.7,
+        )
+        txt = resp.choices[0].message.content.strip()
+        try:
+            questions = json.loads(txt)
+        except Exception:
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', txt)
+            if json_match:
+                try:
+                    questions = json.loads(json_match.group(1).strip())
+                except Exception:
+                    questions = []
+            else:
+                # If it's still not valid JSON, we might have a problem
+                # For now, return empty or try one more cleanup
+                questions = []
+
+        return {"questions": questions, "remaining": llm_limiter.remaining(client_ip)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

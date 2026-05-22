@@ -174,5 +174,5 @@ li {
 
 /* Top padding for pages behind fixed navbar */
 .page-shell {
-  padding-top: 10vh;
+  padding-top: calc(var(--nav-height, 9vh) + 1vh);
 }

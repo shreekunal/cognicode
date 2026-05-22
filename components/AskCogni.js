@@ -102,8 +102,8 @@ ${code}
         <div className="flex flex-col h-full bg-light-2 dark:bg-dark-3">
             <div className="flex items-center justify-between px-5 py-3 border-b border-light-3 dark:border-dark-4 bg-light-3/20">
                 <div className="flex items-center gap-2">
-                    <BsStars className="text-red-500" size={18} />
-                    <h2 className="text-sm font-bold text-gray-900 dark:text-light-1">Ask Cogni</h2>
+                    {/* <BsStars className="text-red-500" size={18} /> */}
+                    <h2 className="text-xs">Here I come ! How can i help you </h2>
                 </div>
                 {messages.length > 0 && (
                     <button onClick={clearChat} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-light-3 dark:hover:bg-dark-4" title="Clear chat">

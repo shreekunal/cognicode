@@ -116,10 +116,19 @@ export default function ProfileSection() {
 
           {/* User Info Card */}
           <div className="bg-light-2 dark:bg-dark-3 rounded-2xl shadow-lg p-6 card-hover border border-transparent hover:border-accent/20 animate-on-load animate-slide-up delay-100">
-            <h2 className="text-2xl font-bold text-dark-1 dark:text-light-1 mb-1">
-              {data.name || "User"}
-            </h2>
-            <p className="text-sm text-gray-1 dark:text-gray-2 mb-4">{data.email}</p>
+            <div className="flex flex-col items-center mb-6">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-red-500 bg-light-3 dark:bg-dark-4 flex items-center justify-center shadow-md mb-4">
+                {data.image ? (
+                  <img src={data.image} alt={data.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-bold text-gray-400 uppercase">{data.name ? data.name.charAt(0) : '?'}</span>
+                )}
+              </div>
+              <h2 className="text-2xl font-bold text-dark-1 dark:text-light-1 text-center">
+                {data.name || "User"}
+              </h2>
+              <p className="text-sm text-gray-1 dark:text-gray-2">{data.email}</p>
+            </div>
 
             <div className="space-y-2.5">
               {infoRows.map((row) => (

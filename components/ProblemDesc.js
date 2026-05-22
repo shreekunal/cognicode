@@ -4,6 +4,7 @@ import { AiOutlineLike, AiFillLike, AiOutlineDislike, AiFillDislike } from "reac
 import { FaRegStar, FaStar } from "react-icons/fa";
 import { TiInputChecked } from "react-icons/ti";
 import { FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { BsStars } from "react-icons/bs";
 import TextSolutions from './TextSolutions';
 import AIRecommendation from './AIRecommendation';
 import AskCogni from './AskCogni';
@@ -72,8 +73,9 @@ const ProblemDesc = ({ problems, code, language }) => {
                 </button>
                 <button
                     onClick={() => setActiveTab('ask-cogni')}
-                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors font-semibold flex items-center gap-2 ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 text-red-600 dark:text-red-400' : 'text-red-500/70 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400'}`}
                 >
+                    <BsStars size={14} className={activeTab === 'ask-cogni' ? 'text-red-600' : 'text-red-500'} />
                     Ask Cogni
                 </button>
                 <button

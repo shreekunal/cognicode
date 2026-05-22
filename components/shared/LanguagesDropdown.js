@@ -3,7 +3,9 @@ import Select from "react-select";
 import { languagesData } from "@/constants";
 import { customStyles } from "@/utils/customStyles";
 
-const LanguagesDropdown = ({ onSelectChange, value=null }) => {
+const LanguagesDropdown = ({ onSelectChange, value = null }) => {
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+
   if (value) {
     return (
       <Select
@@ -12,6 +14,8 @@ const LanguagesDropdown = ({ onSelectChange, value=null }) => {
         styles={customStyles}
         defaultValue={languagesData[3]}
         onChange={onSelectChange}
+        menuPortalTarget={portalTarget}
+        menuPosition="fixed"
       />
     );
   }
@@ -21,6 +25,8 @@ const LanguagesDropdown = ({ onSelectChange, value=null }) => {
       styles={customStyles}
       defaultValue={languagesData[3]}
       onChange={onSelectChange}
+      menuPortalTarget={portalTarget}
+      menuPosition="fixed"
     />
   );
 };

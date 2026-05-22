@@ -4,10 +4,11 @@ import { customStyles } from "@/utils/customStyles";
 
 
 const ThemeDropdown = ({ handleThemeChange }) => {
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
 
   const themes = [
-    {label: 'Dark', value: 'dark'},
-    {label: 'Light', value: 'light'},
+    { label: 'Dark', value: 'dark' },
+    { label: 'Light', value: 'light' },
   ];
 
   return (
@@ -16,6 +17,8 @@ const ThemeDropdown = ({ handleThemeChange }) => {
       styles={customStyles}
       defaultValue={themes[0]}
       onChange={handleThemeChange}
+      menuPortalTarget={portalTarget}
+      menuPosition="fixed"
     />
   );
 };

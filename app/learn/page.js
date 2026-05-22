@@ -15,7 +15,7 @@ export default function LearnPage() {
     }, [searchParams]);
 
     return (
-        <div className="w-full mt-[9vh] px-4 py-3 space-y-4">
+        <div className="w-full px-4 py-3 space-y-4">
             <div className="max-w-6xl mx-auto">
                 {activeTab === 'learn' ? <ChatTutor /> : <AdaptiveInterviewMode />}
             </div>

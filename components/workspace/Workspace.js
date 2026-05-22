@@ -47,9 +47,9 @@ const Workspace = ({ problems }) => {
 	}, [code, clickedProblemId, language.value]);
 
 	return (
-		<>
+		<div className="w-full h-[calc(100vh-var(--nav-height,9vh)-1vh)] overflow-hidden flex flex-col">
 			{submitted && <Confetti gravity={0.3} tweenDuration={5000} />}
-			<Split className='split px-1 h-[calc(100vh-10vh)] max-md:hidden overflow-hidden' minSize={500}>
+			<Split className='split px-1 flex-grow max-md:hidden overflow-hidden' minSize={500}>
 				<ProblemDesc problems={problems} code={code} language={language} />
 				<Playground 
 					problems={problems} 
@@ -60,7 +60,7 @@ const Workspace = ({ problems }) => {
 					setLanguage={setLanguage}
 				/>
 			</Split>
-			<div className="md:hidden px-1 h-[calc(100vh-10vh)] overflow-hidden flex flex-col">
+			<div className="md:hidden px-1 flex-grow overflow-hidden flex flex-col">
 				<ProblemDesc problems={problems} code={code} language={language} />
 				<Playground 
 					problems={problems} 
@@ -71,7 +71,7 @@ const Workspace = ({ problems }) => {
 					setLanguage={setLanguage}
 				/>
 			</div>
-		</>
+		</div>
 	);
 }
 

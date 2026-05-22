@@ -9,7 +9,6 @@ import { useSession } from 'next-auth/react';
 import { FormSkeleton } from '@/components/shared/Skeleton';
 
 export const dynamic = 'force-dynamic';
-
 const Form = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -19,13 +18,19 @@ const Form = () => {
     city: '',
     country: '',
     phone: '',
+    image: '',
   });
+
+  const [imagePreview, setImagePreview] = useState(null);
 
   async function fetchUserInfo() {
     try {
       const response = await axios.get("/api/getUserInfo");
       const data = response.data;
       setFormData(prev => ({ ...prev, ...data }));
+      if (data.image) {
+        setImagePreview(data.image);
+      }
     } catch (error) {
       // silently fail — form still works
     }
@@ -37,6 +42,22 @@ const Form = () => {
 
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size too large (max 2MB)");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, image: reader.result });
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -69,6 +90,24 @@ const Form = () => {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-8">
+      {/* Profile Photo Upload */}
+      <div className="flex flex-col items-center gap-4 mb-4">
+        <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-red-500 bg-light-3 dark:bg-dark-4 flex items-center justify-center shadow-lg">
+          {imagePreview ? (
+            <img src={imagePreview} alt="Profile Preview" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-gray-400 flex flex-col items-center">
+              <span className="text-4xl font-bold">{formData.name ? formData.name.charAt(0).toUpperCase() : '?'}</span>
+            </div>
+          )}
+          <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer text-white text-xs font-bold">
+            CHANGE
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+          </label>
+        </div>
+        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Profile Picture</p>
+      </div>
+
       <input
         type="text"
         name="name"

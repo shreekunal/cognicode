@@ -46,11 +46,11 @@ export const customStyles = {
       fontSize: "0.75rem",
       padding: "6px 10px",
       width: "100%",
-      background: isSelected 
-        ? (dark ? "#DC2626" : "#EF4444") 
-        : (isFocused 
-            ? (dark ? "#363636" : "#EBEBEB") 
-            : (dark ? "#2A2A2A" : "#FFFFFF")),
+      background: isSelected
+        ? (dark ? "#DC2626" : "#EF4444")
+        : (isFocused
+          ? (dark ? "#363636" : "#EBEBEB")
+          : (dark ? "#2A2A2A" : "#FFFFFF")),
       ":active": {
         background: dark ? "#DC2626" : "#EF4444",
       },
@@ -65,10 +65,14 @@ export const customStyles = {
       maxWidth: "12rem",
       border: dark ? "1px solid #363636" : "1px solid #D9D9D9",
       borderRadius: "8px",
-      zIndex: 9999,
       boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
     };
   },
+
+  menuPortal: (styles) => ({
+    ...styles,
+    zIndex: 99999,
+  }),
 
   placeholder: (defaultStyles) => {
     const dark = isDark();

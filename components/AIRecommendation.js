@@ -119,7 +119,7 @@ export default function AIRecommendation({ currentDifficulty }) {
           className={`flex items-center gap-2 ${hasResults ? 'cursor-pointer' : 'cursor-default'}`}
         >
           <BsStars className="w-4 h-4 text-red-500" />
-          <span className="text-sm font-semibold text-gray-800 dark:text-white">AI-Powered Recommendation</span>
+          <span className="text-sm font-semibold text-red-600 dark:text-red-400">AI-Powered Recommendation</span>
 
           {/* Insight chips inline */}
           {insights && (

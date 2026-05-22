@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Split from "react-split";
 import CodeEditorWindow from "../shared/CodeEditorWindow";
 import OutputWindow from "../shared/OutputWindow";
@@ -18,6 +19,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const defaultEditorSettings = {
     fontStyle: "mono",
     showLineNumbers: true,
+    showIndentationGuides: true,
     superAlarm: false,
   };
 
@@ -49,7 +51,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const [fontSize, setFontSize] = useState({ value: '14', label: '14px' });
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [clickedProblemId, setClickedProblemId] = useState(null);
-  const [activeTab, setActiveTab] = useState("testcases"); // "results" | "hint" | "testcases"
+  const [activeTab, setActiveTab] = useState(null); // null | "results" | "hint" | "testcases"
   const [currentProblem, setCurrentProblem] = useState(null);
   const [explanation, setExplanation] = useState(null);
   const [explanationLoading, setExplanationLoading] = useState(false);
@@ -71,10 +73,12 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState("language");
   const settingsRef = useRef(null);
+  const settingsModalRef = useRef(null);
 
   const [lastCodeLoading, setLastCodeLoading] = useState(false);
 
   const activeFontStyle = fontStyleOptions.find((option) => option.value === editorSettings.fontStyle) || fontStyleOptions[0];
+  const settingsPortalTarget = typeof document !== "undefined" ? document.body : null;
 
   const retrieveLastSubmission = async () => {
     if (!clickedProblemId) return;
@@ -159,7 +163,10 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+      const clickedToggle = settingsRef.current && settingsRef.current.contains(event.target);
+      const clickedModal = settingsModalRef.current && settingsModalRef.current.contains(event.target);
+
+      if (!clickedToggle && !clickedModal) {
         setSettingsOpen(false);
       }
     };
@@ -209,7 +216,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         setClickedProblemId(problem.id);
         setCurrentProblem(problem);
         setSelectedTestCaseIndex(0);
-        setActiveTab("testcases");
+        setActiveTab(null);
         setOutputDetails(null);
         setExplanation(null);
         setExplanationLoading(false);
@@ -392,6 +399,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   };
 
   const toggleLineNumbers = () => setEditorSettings((s) => ({ ...s, showLineNumbers: !s.showLineNumbers }));
+  const toggleIndentationGuides = () => setEditorSettings((s) => ({ ...s, showIndentationGuides: !s.showIndentationGuides }));
   const toggleSuperAlarm = () => setEditorSettings((s) => ({ ...s, superAlarm: !s.superAlarm }));
   const setFontStyle = (f) => setEditorSettings((s) => ({ ...s, fontStyle: f }));
 
@@ -520,10 +528,10 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                         : 'bg-light-2 dark:bg-dark-3 hover:bg-light-3 dark:hover:bg-dark-4'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={isAvailable ? 'text-red-500' : 'text-gray-400'}>
+                        <span className={isAvailable || isNext ? 'text-red-500' : 'text-gray-400'}>
                           {isGenerating ? <div className="animate-spin h-3 w-3 border-2 border-red-500 border-t-transparent rounded-full" /> : hintIcons[l - 1]}
                         </span>
-                        <span className="text-sm font-semibold text-dark-1 dark:text-light-1">
+                        <span className={`text-sm font-semibold ${isAvailable || isNext ? 'text-red-600 dark:text-red-400' : 'text-dark-1 dark:text-light-1'}`}>
                           {hintLabels[l - 1]}
                           {isGenerating && <span className="ml-2 text-[10px] font-normal text-gray-400 animate-pulse">Generating...</span>}
                         </span>
@@ -551,40 +559,40 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   };
 
   const renderBottomStrip = () => (
-    <div className="absolute inset-x-0 bottom-0 z-20 px-2 pb-1">
-      <div className="h-8 w-full rounded-md border border-light-4 dark:border-dark-4 bg-light-2/95 dark:bg-dark-3/95 px-2 text-[12px] flex items-center gap-2 shadow-sm backdrop-blur-sm">
+    <div className="absolute inset-x-2 bottom-0 z-20 pb-2">
+      <div className="h-12 w-full rounded-none rounded-b-lg border border-light-4 dark:border-dark-4 bg-light-2/95 dark:bg-dark-3/95 px-3 text-sm flex items-center gap-3 shadow-sm backdrop-blur-sm">
         <button
-          onClick={() => setActiveTab('hint')}
+          onClick={() => setActiveTab((prev) => (prev === 'hint' ? null : 'hint'))}
           className={`flex items-center gap-1 transition-colors ${activeTab === 'hint'
-            ? 'text-green-600 dark:text-green-400'
-            : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
+            ? 'text-red-600 dark:text-red-400 font-bold'
+            : 'text-red-500/80 dark:text-red-400/80 hover:text-red-600 dark:hover:text-red-400'}`}
         >
-          <FiHelpCircle size={12} />
+          <FiHelpCircle size={14} className={activeTab === 'hint' ? 'text-red-600' : 'text-red-500'} />
           Hint
         </button>
         <span className="text-gray-400">&gt;</span>
         <button
-          onClick={() => setActiveTab('testcases')}
+          onClick={() => setActiveTab((prev) => (prev === 'testcases' ? null : 'testcases'))}
           className={`flex items-center gap-1 transition-colors ${activeTab === 'testcases'
             ? 'text-green-600 dark:text-green-400'
             : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
         >
-          <FiTarget size={12} />
+          <FiTarget size={14} />
           Test Cases
         </button>
         <span className="text-gray-400">&gt;</span>
         <button
-          onClick={() => setActiveTab('results')}
+          onClick={() => setActiveTab((prev) => (prev === 'results' ? null : 'results'))}
           className={`flex items-center gap-1 transition-colors ${activeTab === 'results'
             ? 'text-green-600 dark:text-green-400'
             : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
         >
-          <FiCheckCircle size={12} />
+          <FiCheckCircle size={14} />
           Test Result
         </button>
         <div className="flex-grow" />
         <button
-          onClick={() => setActiveTab(activeTab ? null : 'testcases')}
+          onClick={() => setActiveTab(null)}
           className="text-gray-400 hover:text-dark-1 dark:hover:text-light-2"
         >
           {activeTab ? <FiMinimize size={14} className="rotate-45" /> : <FiMaximize size={14} />}
@@ -594,39 +602,40 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   );
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden">
-      <div className="flex px-1 py-1 gap-2 justify-between max-md:mt-2 flex-wrap bg-light-2 dark:bg-dark-3 border-b border-light-4 dark:border-dark-4">
-        <div className="flex gap-1.5 items-center">
+    <div className="relative w-full h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg border border-[#2f2f2f] bg-[#1e1e1e] px-3 py-1 shadow-sm flex-wrap">
+        <div className="flex gap-1.5 items-center flex-wrap">
           <div className="flex items-center gap-1">
-            <button onClick={formatCode} className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4" title="Format Code">
+            <button onClick={formatCode} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300" title="Format Code">
               <FiCode size={16} />
             </button>
-            <button onClick={retrieveLastSubmission} disabled={lastCodeLoading} className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4 disabled:opacity-50" title="Retrieve Last Submission">
+            <button onClick={retrieveLastSubmission} disabled={lastCodeLoading} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300 disabled:opacity-50" title="Retrieve Last Submission">
               {lastCodeLoading ? <Loader /> : <FiDownload size={16} />}
             </button>
           </div>
-          <div className="h-4 w-[1px] bg-light-4 dark:bg-dark-4 mx-1" />
+          <div className="h-4 w-[1px] bg-[#333333] mx-1" />
           <Timer superAlarmEnabled={editorSettings.superAlarm} />
         </div>
         <div className="flex gap-2 items-center">
-          <button onClick={handleResetCode} className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4" title="Reset code (Ctrl+Shift+R)">
+          <button onClick={handleResetCode} className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300" title="Reset code (Ctrl+Shift+R)">
             <FiRotateCcw size={16} />
           </button>
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((open) => !open)}
-              className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4"
+              className="hover:bg-[#2a2a2a] rounded-none p-1 transition-colors text-gray-300"
               title="Editor settings"
             >
               <FiSettings size={16} />
             </button>
-            {settingsOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm" onClick={() => setSettingsOpen(false)}>
+            {settingsOpen && settingsPortalTarget && createPortal(
+              <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm" onClick={() => setSettingsOpen(false)}>
                 <div
-                  className="flex h-[74vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-light-4 bg-light-1 shadow-[0_30px_90px_rgba(0,0,0,0.45)] dark:border-dark-4 dark:bg-dark-2"
+                  ref={settingsModalRef}
+                  className="flex h-[74vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-[#333333] bg-[#1e1e1e] shadow-[0_30px_90px_rgba(0,0,0,0.45)]"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <div className="w-[220px] shrink-0 border-r border-light-4 bg-light-2 p-4 dark:border-dark-4 dark:bg-dark-3">
+                  <div className="w-[220px] shrink-0 border-r border-[#333333] bg-[#1e1e1e] p-4">
                     <div className="space-y-2">
                       {[
                         { key: "language", label: "Language" },
@@ -639,8 +648,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                           key={item.key}
                           onClick={() => setSettingsSection(item.key)}
                           className={`w-full rounded-lg px-4 py-3 text-left text-sm transition-colors ${settingsSection === item.key
-                            ? 'bg-dark-4 text-white dark:bg-light-4 dark:text-dark-1'
-                            : 'text-gray-500 hover:bg-light-3 hover:text-dark-1 dark:text-gray-400 dark:hover:bg-dark-4 dark:hover:text-light-1'
+                            ? 'bg-[#2f2f2f] text-white'
+                            : 'text-gray-400 hover:bg-[#252525] hover:text-white'
                             }`}
                         >
                           {item.label}
@@ -650,14 +659,14 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                   </div>
 
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center justify-between border-b border-light-4 px-5 py-4 dark:border-dark-4">
+                    <div className="flex items-center justify-between border-b border-[#333333] px-5 py-4">
                       <div>
-                        <div className="text-sm font-semibold text-dark-1 dark:text-light-1">Settings</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Make it yours with your controls</div>
+                        <div className="text-sm font-semibold text-white">Settings</div>
+                        <div className="text-xs text-gray-400">Make it yours with your controls</div>
                       </div>
                       <button
                         onClick={() => setSettingsOpen(false)}
-                        className="rounded-md p-2 text-gray-500 transition-colors hover:bg-light-3 hover:text-dark-1 dark:hover:bg-dark-4 dark:hover:text-light-1"
+                        className="rounded-none p-2 text-gray-400 transition-colors hover:bg-[#252525] hover:text-white"
                         title="Close settings"
                       >
                         <FiMinimize size={14} className="rotate-45" />
@@ -673,13 +682,13 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                               <button
                                 key={option.value}
                                 onClick={() => onLanguageChange(option)}
-                                className={`w-full flex items-center justify-between rounded-lg px-4 py-3 text-sm transition-colors ${isSelected
-                                  ? 'bg-light-3 text-dark-1 dark:bg-dark-4 dark:text-light-1'
-                                  : 'text-gray-500 hover:bg-light-3 hover:text-dark-1 dark:text-gray-400 dark:hover:bg-dark-4 dark:hover:text-light-1'
+                                className={`w-full flex items-center justify-between rounded-none px-4 py-3 text-sm transition-colors ${isSelected
+                                  ? 'bg-[#2f2f2f] text-white'
+                                  : 'text-gray-400 hover:bg-[#252525] hover:text-white'
                                   }`}
                               >
                                 <span>{option.label}</span>
-                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-400/70'}`} />
+                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-500/70'}`} />
                               </button>
                             );
                           })}
@@ -694,13 +703,13 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                               <button
                                 key={option.value}
                                 onClick={() => setTheme(option)}
-                                className={`w-full flex items-center justify-between rounded-lg px-4 py-3 text-sm transition-colors ${isSelected
-                                  ? 'bg-light-3 text-dark-1 dark:bg-dark-4 dark:text-light-1'
-                                  : 'text-gray-500 hover:bg-light-3 hover:text-dark-1 dark:text-gray-400 dark:hover:bg-dark-4 dark:hover:text-light-1'
+                                className={`w-full flex items-center justify-between rounded-none px-4 py-3 text-sm transition-colors ${isSelected
+                                  ? 'bg-[#2f2f2f] text-white'
+                                  : 'text-gray-400 hover:bg-[#252525] hover:text-white'
                                   }`}
                               >
                                 <span>{option.label}</span>
-                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-400/70'}`} />
+                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-500/70'}`} />
                               </button>
                             );
                           })}
@@ -715,13 +724,13 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                               <button
                                 key={option.value}
                                 onClick={() => setFontSize({ value: option.value, label: option.label })}
-                                className={`w-full flex items-center justify-between rounded-lg px-4 py-3 text-sm transition-colors ${isSelected
-                                  ? 'bg-light-3 text-dark-1 dark:bg-dark-4 dark:text-light-1'
-                                  : 'text-gray-500 hover:bg-light-3 hover:text-dark-1 dark:text-gray-400 dark:hover:bg-dark-4 dark:hover:text-light-1'
+                                className={`w-full flex items-center justify-between rounded-none px-4 py-3 text-sm transition-colors ${isSelected
+                                  ? 'bg-[#2f2f2f] text-white'
+                                  : 'text-gray-400 hover:bg-[#252525] hover:text-white'
                                   }`}
                               >
                                 <span>{option.label}px</span>
-                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-400/70'}`} />
+                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-500/70'}`} />
                               </button>
                             );
                           })}
@@ -736,48 +745,55 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                               <button
                                 key={option.value}
                                 onClick={() => setFontStyle(option.value)}
-                                className={`w-full flex items-center justify-between rounded-lg px-4 py-3 text-sm transition-colors ${isSelected
-                                  ? 'bg-light-3 text-dark-1 dark:bg-dark-4 dark:text-light-1'
-                                  : 'text-gray-500 hover:bg-light-3 hover:text-dark-1 dark:text-gray-400 dark:hover:bg-dark-4 dark:hover:text-light-1'
+                                className={`w-full flex items-center justify-between rounded-none px-4 py-3 text-sm transition-colors ${isSelected
+                                  ? 'bg-[#2f2f2f] text-white'
+                                  : 'text-gray-400 hover:bg-[#252525] hover:text-white'
                                   }`}
                               >
                                 <span>{option.label}</span>
-                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-400/70'}`} />
+                                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-red-500' : 'border border-gray-500/70'}`} />
                               </button>
                             );
                           })}
-                          <button onClick={toggleLineNumbers} className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-sm text-dark-1 transition-colors hover:bg-light-3 dark:text-light-1 dark:hover:bg-dark-4">
+                          <button onClick={toggleLineNumbers} className="w-full flex items-center justify-between rounded-none px-4 py-3 text-sm text-white transition-colors hover:bg-[#252525]">
                             <span>Line Numbers</span>
-                            <span className={`text-xs font-semibold ${editorSettings.showLineNumbers ? 'text-green-500' : 'text-gray-500'}`}>{editorSettings.showLineNumbers ? 'On' : 'Off'}</span>
+                            <span className={`text-xs font-semibold ${editorSettings.showLineNumbers ? 'text-green-500' : 'text-gray-400'}`}>{editorSettings.showLineNumbers ? 'On' : 'Off'}</span>
+                          </button>
+                          <button onClick={toggleIndentationGuides} className="w-full flex items-center justify-between rounded-none px-4 py-3 text-sm text-white transition-colors hover:bg-[#252525]">
+                            <span>Indentation Guides</span>
+                            <span className={`text-xs font-semibold ${editorSettings.showIndentationGuides ? 'text-green-500' : 'text-gray-400'}`}>{editorSettings.showIndentationGuides ? 'On' : 'Off'}</span>
                           </button>
                         </div>
                       )}
 
                       {settingsSection === "timer" && (
                         <div className="space-y-2">
-                          <button onClick={toggleSuperAlarm} className="w-full flex items-start justify-between rounded-lg px-4 py-3 text-left text-sm text-dark-1 transition-colors hover:bg-light-3 dark:text-light-1 dark:hover:bg-dark-4">
+                          <button onClick={toggleSuperAlarm} className="w-full flex items-start justify-between rounded-none px-4 py-3 text-left text-sm text-white transition-colors hover:bg-[#252525]">
                             <span className="pr-4">
                               <span className="block font-medium">Super Alarm</span>
-                              <span className="mt-1 block text-xs leading-4 text-gray-500 dark:text-gray-400">Plays a sound at 10 minutes remaining and again when the timer ends.</span>
+                              <span className="mt-1 block text-xs leading-4 text-gray-400">Plays a sound at 10 minutes remaining and again when the timer ends.</span>
                             </span>
-                            <span className={`text-xs font-semibold whitespace-nowrap ${editorSettings.superAlarm ? 'text-green-500' : 'text-gray-500'}`}>{editorSettings.superAlarm ? 'On' : 'Off'}</span>
+                            <span className={`text-xs font-semibold whitespace-nowrap ${editorSettings.superAlarm ? 'text-green-500' : 'text-gray-400'}`}>{editorSettings.superAlarm ? 'On' : 'Off'}</span>
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>,
+              settingsPortalTarget
             )}
           </div>
           <button onClick={handleFullScreen} className="hover:bg-light-3 dark:hover:bg-dark-4 rounded-md p-1 transition-colors text-dark-4 dark:text-light-4">
             {!isFullScreen ? <FiMaximize size={16} /> : <FiMinimize size={16} />}
           </button>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
           <button
             onClick={() => handleCompile()}
             disabled={!code}
             title="Run (Ctrl+Enter)"
-            className="px-3 py-1 bg-dark-4 dark:bg-dark-4 text-white rounded-md text-xs hover:bg-dark-1 dark:hover:bg-gray-1 transition-colors flex items-center justify-center min-w-[50px]"
+            className="px-3 py-1 bg-[#2f2f2f] text-white rounded-none text-xs hover:bg-[#3a3a3a] transition-colors flex items-center justify-center min-w-[50px]"
           >
             {isCodeRunning ? <Loader /> : "Run"}
           </button>
@@ -786,14 +802,14 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
               onClick={handleSubmit}
               disabled={!code}
               title="Submit (Ctrl+Shift+Enter)"
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs transition-colors flex items-center justify-center min-w-[60px]"
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-none text-xs transition-colors flex items-center justify-center min-w-[60px]"
             >
               {isCodeSubmitting ? <Loader /> : "Submit"}
             </button>
           )}
         </div>
       </div>
-      <div className="w-full flex-grow min-h-0 px-1 pt-1 pb-4 max-md:hidden overflow-hidden">
+      <div className="mx-2 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 max-md:hidden overflow-hidden">
         <Split
           direction="vertical"
           sizes={activeTab ? [60, 40] : [100, 0]}
@@ -801,28 +817,27 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           gutterSize={activeTab ? 8 : 0}
           className="h-full w-full"
         >
-          <div className="h-full w-full min-h-0">
-            <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} />
+          <div className="h-full w-full min-h-0 rounded-t-lg border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
+            <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
           </div>
           <div className={`h-full w-full min-h-0 overflow-hidden relative ${!activeTab ? 'hidden' : ''}`}>
-            <div className="h-full w-full rounded-t-2xl border border-light-4 dark:border-dark-4 bg-light-1/98 dark:bg-dark-2/98 p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm overflow-hidden">
+            <div className="h-full w-full rounded-none rounded-b-2xl border border-light-4 dark:border-dark-4 bg-light-1/98 dark:bg-dark-2/98 p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm overflow-hidden">
               {renderBottomPanel()}
             </div>
-            {renderBottomStrip()}
           </div>
         </Split>
       </div>
-      <div className="w-full flex-grow min-h-0 px-1 pt-1 pb-4 md:hidden overflow-hidden flex flex-col">
-        <div className="flex-grow relative min-h-[300px]">
-          <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} />
+      <div className="mx-2 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 md:hidden overflow-hidden flex flex-col">
+        <div className="flex-grow relative min-h-[300px] rounded-t-lg border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
+          <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
         </div>
         <div className={`relative transition-all duration-300 overflow-hidden ${activeTab ? 'h-[350px]' : 'h-10'}`}>
-          <div className="h-full w-full rounded-t-2xl border border-light-4 dark:border-dark-4 bg-light-1/98 dark:bg-dark-2/98 p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm overflow-hidden">
+          <div className="h-full w-full rounded-b-2xl border border-[#2f2f2f] bg-[#1e1e1e] p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] overflow-hidden">
             {activeTab && renderBottomPanel('max-md:pb-2')}
           </div>
-          {renderBottomStrip()}
         </div>
       </div>
+      {renderBottomStrip()}
     </div>
   );
 };
