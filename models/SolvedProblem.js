@@ -28,6 +28,10 @@ const SolvedProblemSchema = Schema({
             enum: ['pending', 'accepted', 'rejected'],
             default: 'pending'
         },
+        language: {
+            type: String,
+            required: true
+        },
         passedTestCases: {type: Number, required: true}
     }],
     

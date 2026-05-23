@@ -72,6 +72,7 @@ export async function POST(req) {
         const newSolution = {
             contest: contest !== null ? contest : undefined,
             code: code,
+            language: language,
             complexity: [lastExecData.cpuTime || '0', lastExecData.memory || '0'],
             status: isAccepted,
             passedTestCases: passedCount
@@ -84,7 +85,9 @@ export async function POST(req) {
                 isAccepted,
                 output: lastOutput,
                 passedTestCases: passedCount,
-                totalTestCases
+                totalTestCases,
+                cpuTime: lastExecData.cpuTime || '0',
+                memory: lastExecData.memory || '0'
             }), { status: 201 });
         } else {
             if ((isAccepted === "accepted" && contest) || !contest) {
@@ -100,14 +103,18 @@ export async function POST(req) {
                     isAccepted,
                     output: lastOutput,
                     passedTestCases: passedCount,
-                    totalTestCases
+                    totalTestCases,
+                    cpuTime: lastExecData.cpuTime || '0',
+                    memory: lastExecData.memory || '0'
                 }), { status: 201 });
             } else {
                 return new Response(JSON.stringify({
                     isAccepted: 'rejected',
                     output: lastOutput,
                     passedTestCases: passedCount,
-                    totalTestCases
+                    totalTestCases,
+                    cpuTime: lastExecData.cpuTime || '0',
+                    memory: lastExecData.memory || '0'
                 }), { status: 200 });
             }
         }

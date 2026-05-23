@@ -10,10 +10,12 @@ import { useParams } from "next/navigation";
 
 const Workspace = ({ problems }) => {
 	const params = useParams();
-	const [submitted, setSubmitted] = useState(false);
+	const [submissionResult, setSubmissionResult] = useState(null);
+	const [showConfetti, setShowConfetti] = useState(false);
 	const [language, setLanguage] = useState(languagesData[3]);
 	const [code, setCode] = useState(mockComments[language.value]);
 	const [clickedProblemId, setClickedProblemId] = useState(null);
+	const [activeTab, setActiveTab] = useState('description');
 
 	const getStorageKey = (problemId, lang) => `cognicode_code_${problemId}_${lang}`;
 
@@ -46,14 +48,32 @@ const Workspace = ({ problems }) => {
 		return () => clearTimeout(timer);
 	}, [code, clickedProblemId, language.value]);
 
+	// Switch to analysis tab when submitted
+	useEffect(() => {
+		if (submissionResult?.isAccepted === 'accepted') {
+			setActiveTab('analysis');
+			setShowConfetti(true);
+			const timer = setTimeout(() => setShowConfetti(false), 5000);
+			return () => clearTimeout(timer);
+		}
+	}, [submissionResult]);
+
 	return (
 		<div className="w-full h-[calc(100vh-var(--nav-height,9vh)-1vh)] overflow-hidden flex flex-col">
-			{submitted && <Confetti gravity={0.3} tweenDuration={5000} />}
+			{showConfetti && <Confetti gravity={0.3} tweenDuration={5000} />}
 			<Split className='split px-1 flex-grow max-md:hidden overflow-hidden' minSize={500}>
-				<ProblemDesc problems={problems} code={code} language={language} />
+				<ProblemDesc 
+					problems={problems} 
+					code={code} 
+					language={language} 
+					solved={submissionResult?.isAccepted === 'accepted'} 
+					submissionResult={submissionResult}
+					activeTab={activeTab}
+					setActiveTab={setActiveTab}
+				/>
 				<Playground 
 					problems={problems} 
-					setSubmitted={setSubmitted} 
+					setSubmitted={setSubmissionResult} 
 					code={code} 
 					setCode={setCode} 
 					language={language} 
@@ -61,10 +81,18 @@ const Workspace = ({ problems }) => {
 				/>
 			</Split>
 			<div className="md:hidden px-1 flex-grow overflow-hidden flex flex-col">
-				<ProblemDesc problems={problems} code={code} language={language} />
+				<ProblemDesc 
+					problems={problems} 
+					code={code} 
+					language={language} 
+					solved={submissionResult?.isAccepted === 'accepted'} 
+					submissionResult={submissionResult}
+					activeTab={activeTab}
+					setActiveTab={setActiveTab}
+				/>
 				<Playground 
 					problems={problems} 
-					setSubmitted={setSubmitted} 
+					setSubmitted={setSubmissionResult} 
 					code={code} 
 					setCode={setCode} 
 					language={language} 

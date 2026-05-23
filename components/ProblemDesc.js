@@ -3,13 +3,15 @@ import { useParams } from 'next/navigation'
 import { AiOutlineLike, AiFillLike, AiOutlineDislike, AiFillDislike } from "react-icons/ai";
 import { FaRegStar, FaStar } from "react-icons/fa";
 import { TiInputChecked } from "react-icons/ti";
-import { FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase, FiChevronDown, FiChevronUp, FiBarChart2 } from "react-icons/fi";
 import { BsStars } from "react-icons/bs";
 import TextSolutions from './TextSolutions';
 import AIRecommendation from './AIRecommendation';
 import AskCogni from './AskCogni';
+import CodeReview from './CodeReview';
+import ComplexityAnalysis from './ComplexityAnalysis';
 
-const ProblemDesc = ({ problems, code, language }) => {
+const ProblemDesc = ({ problems, code, language, solved, submissionResult, activeTab: externalTab, setActiveTab: setExternalTab }) => {
 
     const params = useParams();
     const [clickedProblems, setClickedProblems] = useState();
@@ -17,10 +19,13 @@ const ProblemDesc = ({ problems, code, language }) => {
     const [like, setLike] = useState(false);
     const [disLike, setDisLike] = useState(false);
     const [favorite, setFavorite] = useState(false);
-    const [activeTab, setActiveTab] = useState('description');
+    const [internalTab, setInternalTab] = useState('description');
     const [submissions, setSubmissions] = useState([]);
     const [submissionsLoading, setSubmissionsLoading] = useState(false);
     const [expandedSubmission, setExpandedSubmission] = useState(null);
+
+    const activeTab = externalTab || internalTab;
+    const setActiveTab = setExternalTab || setInternalTab;
 
     const difficultyColors = {
         'Easy': 'bg-green-500',
@@ -62,6 +67,23 @@ const ProblemDesc = ({ problems, code, language }) => {
         }
     }, [activeTab]);
 
+    useEffect(() => {
+        fetchSubmissions();
+    }, [params.id, solved]);
+
+    const isSolved = solved || submissions.some(sub => sub.isAccepted === 'accepted');
+
+    const formatDate = (dateString) => {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return 'Invalid Date';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${day} ${month} ${year}, ${hours}:${minutes}`;
+    };
+
     return (
         <div className='w-full h-full min-h-0 flex flex-col overflow-x-hidden overflow-hidden px-1 pb-1.5'>
             <div className='flex h-11 w-full items-center pt-2 bg-light-3 dark:bg-dark-4 rounded-t-lg px-2'>
@@ -84,6 +106,15 @@ const ProblemDesc = ({ problems, code, language }) => {
                 >
                     Submissions
                 </button>
+                {isSolved && (
+                    <button
+                        onClick={() => setActiveTab('analysis')}
+                        className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors flex items-center gap-2 ${activeTab === 'analysis' ? 'bg-light-2 dark:bg-dark-3 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                    >
+                        <FiBarChart2 size={14} className={activeTab === 'analysis' ? 'text-indigo-600' : 'text-gray-500'} />
+                        Analysis
+                    </button>
+                )}
             </div>
             <div className='bg-light-2 dark:bg-dark-3 dark:text-light-1 rounded-b-lg flex-grow min-h-0 overflow-y-auto'>
 
@@ -98,9 +129,11 @@ const ProblemDesc = ({ problems, code, language }) => {
                             {clickedProblems?.difficulty}
                         </div>
                         {/*  Solved Section  */}
-                        <div className='mx-2 cursor-pointer' >
-                            <TiInputChecked size={30} className='text-red-500' />
-                        </div>
+                        {isSolved && (
+                            <div className='mx-2 cursor-pointer' >
+                                <TiInputChecked size={30} className='text-green-500' />
+                            </div>
+                        )}
                     </div>
                     {/* section 2 */}
                     <div className='px-5 py-2'>
@@ -179,7 +212,10 @@ const ProblemDesc = ({ problems, code, language }) => {
                                                 {sub.isAccepted === 'accepted' ? 'Accepted' : 'Rejected'}
                                             </span>
                                             <span className='text-xs text-gray-500 dark:text-gray-400'>
-                                                {new Date(sub.submittedAt).toLocaleString()}
+                                                {formatDate(sub.submittedAt)}
+                                            </span>
+                                            <span className='text-[10px] text-gray-400 font-medium'>
+                                                {Math.round(parseFloat(sub.cpuTime || 0) * 1000)} ms
                                             </span>
                                             <span className='text-[10px] bg-light-4 dark:bg-dark-3 px-2 py-0.5 rounded uppercase font-bold text-gray-500 dark:text-gray-400'>
                                                 {sub.language}
@@ -198,6 +234,56 @@ const ProblemDesc = ({ problems, code, language }) => {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* ===== ANALYSIS TAB ===== */}
+                <div className={activeTab !== 'analysis' ? 'hidden' : 'p-5 space-y-6'}>
+                    <h2 className='font-semibold text-xl'>Solution Analysis</h2>
+                    
+                    {/* Performance Stats Section */}
+                    {submissionResult && (
+                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <div className='bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                <span className='text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider mb-1'>Test Cases</span>
+                                <span className='text-2xl font-bold text-green-700 dark:text-green-300'>{submissionResult.passedTestCases} / {submissionResult.totalTestCases}</span>
+                                <span className='text-[10px] text-green-600/70 dark:text-green-400/70 font-medium mt-1'>Passed</span>
+                            </div>
+                            <div className='bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                <span className='text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider mb-1'>Runtime</span>
+                                <span className='text-2xl font-bold text-blue-700 dark:text-blue-300'>{Math.round(parseFloat(submissionResult.cpuTime || 0) * 1000)} ms</span>
+                                <span className='text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium mt-1'>Execution Time</span>
+                            </div>
+                            <div className='bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                <span className='text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 tracking-wider mb-1'>Memory</span>
+                                <span className='text-2xl font-bold text-purple-700 dark:text-purple-300'>{Math.round(parseFloat(submissionResult.memory || 0) / 1024)} KB</span>
+                                <span className='text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium mt-1'>Usage</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className='space-y-8'>
+                        <div className='bg-white dark:bg-dark-2 rounded-xl p-5 border border-light-4 dark:border-dark-4 shadow-sm'>
+                            <h3 className='text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2'>
+                                <FiCheckCircle className='text-green-500' /> Code Analysis
+                            </h3>
+                            <CodeReview 
+                                code={code} 
+                                language={language?.label || 'javascript'} 
+                                autoFetch={activeTab === 'analysis' && solved} 
+                            />
+                        </div>
+
+                        <div className='bg-white dark:bg-dark-2 rounded-xl p-5 border border-light-4 dark:border-dark-4 shadow-sm'>
+                            <h3 className='text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2'>
+                                <FiCpu className='text-blue-500' /> Complexity
+                            </h3>
+                            <ComplexityAnalysis 
+                                code={code} 
+                                language={language?.label || 'javascript'} 
+                                autoFetch={activeTab === 'analysis' && solved} 
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

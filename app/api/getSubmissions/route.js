@@ -38,6 +38,8 @@ export async function GET(req) {
                 submissions.push({
                     code: sol.code,
                     status: sol.status,
+                    isAccepted: sol.status, // Add isAccepted for frontend compatibility
+                    language: sol.language || 'unknown',
                     passedTestCases: sol.passedTestCases,
                     cpuTime: sol.complexity?.[0] || '0',
                     memory: sol.complexity?.[1] || '0',

@@ -88,7 +88,6 @@ export default function AIRecommendation({ currentDifficulty }) {
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
             {rec.topic && <span>{rec.topic}</span>}
             {rec.order > 0 && <span>#{rec.order}</span>}
-            {rec.likes > 0 && <span>{rec.likes} likes</span>}
           </div>
 
           {rec.companies?.length > 0 && (

@@ -5,9 +5,8 @@ import Split from "react-split";
 import CodeEditorWindow from "../shared/CodeEditorWindow";
 import OutputWindow from "../shared/OutputWindow";
 import CodeReview from "../CodeReview";
-import ComplexityAnalysis from "../ComplexityAnalysis";
 import { languagesData, mockComments, getStarterForLanguage } from "@/constants";
-import { FiBookOpen, FiCheckCircle, FiAlertTriangle, FiRotateCcw, FiHelpCircle, FiCompass, FiTarget, FiCode, FiDownload, FiMaximize, FiMinimize, FiSettings } from "react-icons/fi";
+import { FiCheckCircle, FiAlertTriangle, FiRotateCcw, FiHelpCircle, FiCompass, FiTarget, FiCode, FiDownload, FiMaximize, FiMinimize, FiSettings } from "react-icons/fi";
 import { BsLightbulb } from "react-icons/bs";
 import Timer from "../shared/Timer";
 import axios from "axios";
@@ -53,8 +52,6 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const [clickedProblemId, setClickedProblemId] = useState(null);
   const [activeTab, setActiveTab] = useState(null); // null | "results" | "hint" | "testcases"
   const [currentProblem, setCurrentProblem] = useState(null);
-  const [explanation, setExplanation] = useState(null);
-  const [explanationLoading, setExplanationLoading] = useState(false);
   const [selectedTestCaseIndex, setSelectedTestCaseIndex] = useState(0);
 
   // Custom Input State
@@ -263,8 +260,6 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         setSelectedTestCaseIndex(0);
         setActiveTab(null);
         setOutputDetails(null);
-        setExplanation(null);
-        setExplanationLoading(false);
         setHints([]);
         setHintLevel(0);
         setHintError(null);
@@ -408,7 +403,6 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   const handleSubmit = async () => {
     setIsCodeSubmitting(true);
-    setActiveTab("results");
     try {
       const res = await fetch("/cognicode/api/submitCode", {
         method: "POST",
@@ -417,42 +411,21 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
       });
       const data = await res.json();
       if (data.isAccepted === "accepted") {
-        setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 5000);
+        setSubmitted(data);
         setOutputDetails({ output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: true });
+        setActiveTab(null); // Close the bottom panel so only the AI analysis tab is prominent
       } else {
+        setSubmitted(data);
         setOutputDetails({ output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: false });
+        setActiveTab("results");
       }
     } catch (error) {
       setOutputDetails({ output: "Submission failed: " + error.message, submitted: true, accepted: false });
+      setActiveTab("results");
     } finally {
       setIsCodeSubmitting(false);
     }
   }
-
-  const fetchExplanation = async () => {
-    if (!currentProblem || !code) return;
-    setExplanationLoading(true);
-    try {
-      const res = await fetch('/cognicode/api/ai/explain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          problemTitle: currentProblem.title || '',
-          problemStatement: (currentProblem.problemStatement || '').replace(/<[^>]*>/g, ''),
-          code,
-          language: language.value,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) setExplanation(data);
-      else setExplanation({ explanation: data.error || 'Failed to get explanation' });
-    } catch (e) {
-      setExplanation({ explanation: 'Error: ' + e.message });
-    } finally {
-      setExplanationLoading(false);
-    }
-  };
 
   const onLanguageChange = (lang) => {
     const currentDefault = currentProblem?.starterCode
@@ -524,24 +497,24 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
             </div>
 
             {isCustomInput ? (
-              <div className="px-3 py-3">
-                <div className="text-[12px] uppercase tracking-tight text-gray-200 mb-0.5 font-bold">Your Input</div>
+              <div className={`px-3 py-3 rounded-lg border ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                <div className={`text-[12px] uppercase tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} mb-0.5 font-bold`}>Your Input</div>
                 <textarea
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   placeholder="Enter custom input here..."
-                  className="w-full h-24 p-2 rounded-lg border border-light-4 dark:border-dark-4 bg-transparent font-mono text-xs text-dark-1 dark:text-light-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={`w-full h-24 p-2 rounded-lg ${isDarkMode ? 'bg-dark-2 text-white border-dark-4' : 'bg-white text-dark-1 border-light-4'} font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500`}
                 />
               </div>
             ) : selectedTestCase ? (
-              <div className="grid gap-2 px-3 py-3 md:grid-cols-2">
-                <div className="rounded-lg border border-light-4 dark:border-dark-4 bg-gray-700 dark:bg-gray-700 p-3">
-                  <div className="mb-0.5 text-[12px] uppercase font-bold tracking-tight text-gray-200">Input</div>
-                  <pre className="whitespace-pre-wrap font-mono text-[12px] text-gray-100 leading-5 overflow-auto max-h-24 bg-gray-700 dark:bg-gray-700 p-0">{selectedTestCaseInput || 'No input available'}</pre>
+              <div className="grid gap-2 px-2 py-3 md:grid-cols-2">
+                <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Input</div>
+                  <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{selectedTestCaseInput || 'No input available'}</div>
                 </div>
-                <div className="rounded-lg border border-light-4 dark:border-dark-4 bg-gray-700 dark:bg-gray-700 p-3">
-                  <div className="mb-0.5 text-[12px] uppercase font-bold tracking-tight text-gray-200">Expected output</div>
-                  <pre className="whitespace-pre-wrap font-mono text-[12px] text-gray-100 leading-5 overflow-auto max-h-24 bg-gray-700 dark:bg-gray-700 p-0">{formatCaseValue(selectedTestCase.output) || 'No output available'}</pre>
+                <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Expected output</div>
+                  <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{formatCaseValue(selectedTestCase.output) || 'No output available'}</div>
                 </div>
               </div>
             ) : (
@@ -552,34 +525,12 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
         {activeTab === "results" && (
           <div className="flex flex-1 min-h-0 flex-col gap-2 overflow-hidden">
-            <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} theme={isDarkMode ? "dark" : "light"} />
-
-            {outputDetails?.accepted && (
-              <div className="border-t border-light-4 dark:border-dark-4 pt-2">
-                {!explanation ? (
-                  <button
-                    onClick={fetchExplanation}
-                    disabled={explanationLoading}
-                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700 disabled:bg-gray-400 transition-colors flex items-center gap-1 shadow-sm"
-                  >
-                    <FiBookOpen className="inline" />{explanationLoading ? 'Analyzing...' : 'Explain My Solution'}
-                  </button>
-                ) : (
-                  <div className="space-y-1.5 text-xs p-1">
-                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><FiBookOpen /> Solution Explanation</h4>
-                    {explanation.explanation && (
-                      <p className="text-dark-1 dark:text-light-4 leading-relaxed">{explanation.explanation}</p>
-                    )}
-                    {(explanation.timeComplexity || explanation.spaceComplexity) && (
-                      <div className="flex gap-2 flex-wrap mt-1.5">
-                        {explanation.timeComplexity && <span className="px-1.5 py-0.5 bg-light-3 dark:bg-dark-4 rounded text-[9px] font-bold">TIME: {explanation.timeComplexity}</span>}
-                        {explanation.spaceComplexity && <span className="px-1.5 py-0.5 bg-light-3 dark:bg-dark-4 rounded text-[9px] font-bold">SPACE: {explanation.spaceComplexity}</span>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            <OutputWindow
+              outputDetails={outputDetails}
+              additionalStyles={additionalStyles}
+              theme={isDarkMode ? "dark" : "light"}
+              isLoading={isCodeRunning || isCodeSubmitting}
+            />
           </div>
         )}
 
@@ -652,16 +603,20 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           <FiTarget size={14} />
           Test Cases
         </button>
-        <span className="text-gray-400">&gt;</span>
-        <button
-          onClick={() => setActiveTab((prev) => (prev === 'results' ? null : 'results'))}
-          className={`flex items-center gap-1 transition-colors ${activeTab === 'results'
-            ? 'text-green-600 dark:text-green-400'
-            : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
-        >
-          <FiCheckCircle size={14} />
-          Test Result
-        </button>
+        {outputDetails && (
+          <>
+            <span className="text-gray-400">&gt;</span>
+            <button
+              onClick={() => setActiveTab((prev) => (prev === 'results' ? null : 'results'))}
+              className={`flex items-center gap-1 transition-colors ${activeTab === 'results'
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
+            >
+              <FiCheckCircle size={14} />
+              Test Result
+            </button>
+          </>
+        )}
         <div className="flex-grow" />
         <button
           onClick={() => setActiveTab(null)}
