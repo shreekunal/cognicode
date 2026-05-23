@@ -102,7 +102,7 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                 </button>
                 <button
                     onClick={() => setActiveTab('ask-cogni')}
-                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors font-semibold flex items-center gap-1 ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 text-red-600 dark:text-red-400' : 'text-red-500/70 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400'}`}
+                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors font-semibold flex items-center gap-1 motion-safe:animate-pulse transform-gpu duration-200 hover:scale-105 ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 text-red-600 dark:text-red-400' : 'text-red-500/70 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400'}`}
                 >
                     <BsStars size={12} className={activeTab === 'ask-cogni' ? 'text-red-600' : 'text-red-500'} />
                     Ask Cogni
@@ -196,8 +196,8 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                                 key={lang}
                                 onClick={() => setSolutionLanguage(lang)}
                                 className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${(solutionLanguage === lang)
-                                        ? 'bg-red-500 text-white border-red-500'
-                                        : 'bg-light-3 dark:bg-dark-4 text-gray-500 border-transparent hover:border-light-4'
+                                    ? 'bg-red-500 text-white border-red-500'
+                                    : 'bg-light-3 dark:bg-dark-4 text-gray-500 border-transparent hover:border-light-4'
                                     }`}
                             >
                                 {lang === 'python3' ? 'Python' : lang.toUpperCase()}

@@ -513,7 +513,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                 {outputDetails && (outputDetails.error || (outputDetails.resultStatus !== 'accepted')) && (
                   <button
                     onClick={() => copyAndAskCogni(outputDetails)}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded transition-colors border border-red-500/20"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded transition-colors border border-red-500/20 motion-safe:animate-pulse transform-gpu duration-200 hover:scale-105"
                   >
                     <FiMessageSquare size={12} />
                     Ask Cogni for Help
