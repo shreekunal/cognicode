@@ -195,17 +195,16 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                             <button
                                 key={lang}
                                 onClick={() => setSolutionLanguage(lang)}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                                    (solutionLanguage === lang)
-                                    ? 'bg-red-500 text-white border-red-500' 
-                                    : 'bg-light-3 dark:bg-dark-4 text-gray-500 border-transparent hover:border-light-4'
-                                }`}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${(solutionLanguage === lang)
+                                        ? 'bg-red-500 text-white border-red-500'
+                                        : 'bg-light-3 dark:bg-dark-4 text-gray-500 border-transparent hover:border-light-4'
+                                    }`}
                             >
                                 {lang === 'python3' ? 'Python' : lang.toUpperCase()}
                             </button>
                         ))}
                     </div>
-                    
+
                     <div className='bg-white dark:bg-dark-2 border border-light-4 dark:border-dark-4 rounded-lg overflow-hidden'>
                         <div className='p-4'>
                             <pre className='font-mono text-xs text-dark-1 dark:text-light-1 overflow-x-auto p-3 bg-light-2 dark:bg-dark-3 rounded leading-relaxed'>
@@ -238,7 +237,7 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                         <div className='space-y-2'>
                             {submissions.map((sub, i) => (
                                 <div key={i} className='border border-light-4 dark:border-dark-4 rounded-lg overflow-hidden'>
-                                    <div 
+                                    <div
                                         className='flex items-center justify-between px-4 py-3 bg-light-3/50 dark:bg-dark-4/50 cursor-pointer hover:bg-light-3 dark:hover:bg-dark-4 transition-colors'
                                         onClick={() => setExpandedSubmission(expandedSubmission === i ? null : i)}
                                     >
@@ -274,43 +273,43 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                 {/* ===== ANALYSIS TAB ===== */}
                 <div className={activeTab !== 'analysis' ? 'hidden' : 'p-5 space-y-6'}>
                     <h2 className='font-semibold text-xl'>Solution Analysis</h2>
-                    
+
                     {/* Performance Stats Section */}
                     {submissionResult && (
                         <>
-                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                            <div className='bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
-                                <span className='text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider mb-1'>Test Cases</span>
-                                <span className='text-2xl font-bold text-green-700 dark:text-green-300'>{submissionResult.passedTestCases} / {submissionResult.totalTestCases}</span>
-                                <span className='text-[10px] text-green-600/70 dark:text-green-400/70 font-medium mt-1'>Passed</span>
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div className='bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                    <span className='text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider mb-1'>Test Cases</span>
+                                    <span className='text-2xl font-bold text-green-700 dark:text-green-300'>{submissionResult.passedTestCases} / {submissionResult.totalTestCases}</span>
+                                    <span className='text-[10px] text-green-600/70 dark:text-green-400/70 font-medium mt-1'>Passed</span>
+                                </div>
+                                <div className='bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                    <span className='text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider mb-1'>Runtime</span>
+                                    <span className='text-2xl font-bold text-blue-700 dark:text-blue-300'>{Math.round(parseFloat(submissionResult.cpuTime || 0) * 1000)} ms</span>
+                                    <span className='text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium mt-1'>Execution Time</span>
+                                </div>
+                                <div className='bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
+                                    <span className='text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 tracking-wider mb-1'>Memory</span>
+                                    <span className='text-2xl font-bold text-purple-700 dark:text-purple-300'>{Math.round(parseFloat(submissionResult.memory || 0) / 1024)} KB</span>
+                                    <span className='text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium mt-1'>Usage</span>
+                                </div>
                             </div>
-                            <div className='bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
-                                <span className='text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider mb-1'>Runtime</span>
-                                <span className='text-2xl font-bold text-blue-700 dark:text-blue-300'>{Math.round(parseFloat(submissionResult.cpuTime || 0) * 1000)} ms</span>
-                                <span className='text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium mt-1'>Execution Time</span>
-                            </div>
-                            <div className='bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
-                                <span className='text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 tracking-wider mb-1'>Memory</span>
-                                <span className='text-2xl font-bold text-purple-700 dark:text-purple-300'>{Math.round(parseFloat(submissionResult.memory || 0) / 1024)} KB</span>
-                                <span className='text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium mt-1'>Usage</span>
-                            </div>
-                        </div>
 
-                        {/* Performance Graphs Section */}
-                        <div className='bg-white dark:bg-dark-2 rounded-xl p-6 border border-light-4 dark:border-dark-4 shadow-sm space-y-10'>
-                            <PerformanceGraph 
-                                type="Runtime"
-                                userValue={parseFloat(submissionResult.cpuTime || 0) * 1000}
-                                label="Runtime"
-                                unit="ms"
-                            />
-                            <PerformanceGraph 
-                                type="Memory"
-                                userValue={parseFloat(submissionResult.memory || 0) / 1024}
-                                label="Memory"
-                                unit="KB"
-                            />
-                        </div>
+                            {/* Performance Graphs Section */}
+                            <div className='bg-white dark:bg-dark-2 rounded-xl p-6 border border-light-4 dark:border-dark-4 shadow-sm space-y-10'>
+                                <PerformanceGraph
+                                    type="Runtime"
+                                    userValue={parseFloat(submissionResult.cpuTime || 0) * 1000}
+                                    label="Runtime"
+                                    unit="ms"
+                                />
+                                <PerformanceGraph
+                                    type="Memory"
+                                    userValue={parseFloat(submissionResult.memory || 0) / 1024}
+                                    label="Memory"
+                                    unit="KB"
+                                />
+                            </div>
                         </>
                     )}
 
@@ -319,10 +318,10 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                             <h3 className='text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2'>
                                 <FiCheckCircle className='text-green-500' /> Code Analysis
                             </h3>
-                            <CodeReview 
-                                code={code} 
-                                language={language?.label || 'javascript'} 
-                                autoFetch={activeTab === 'analysis' && solved} 
+                            <CodeReview
+                                code={code}
+                                language={language?.label || 'javascript'}
+                                autoFetch={activeTab === 'analysis' && solved}
                             />
                         </div>
 
@@ -330,10 +329,10 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                             <h3 className='text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2'>
                                 <FiCpu className='text-blue-500' /> Complexity
                             </h3>
-                            <ComplexityAnalysis 
-                                code={code} 
-                                language={language?.label || 'javascript'} 
-                                autoFetch={activeTab === 'analysis' && solved} 
+                            <ComplexityAnalysis
+                                code={code}
+                                language={language?.label || 'javascript'}
+                                autoFetch={activeTab === 'analysis' && solved}
                             />
                         </div>
                     </div>
