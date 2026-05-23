@@ -5,7 +5,6 @@ import { FaRegStar, FaStar } from "react-icons/fa";
 import { TiInputChecked } from "react-icons/ti";
 import { FiClock, FiCheckCircle, FiXCircle, FiCpu, FiDatabase, FiChevronDown, FiChevronUp, FiBarChart2 } from "react-icons/fi";
 import { BsStars } from "react-icons/bs";
-import TextSolutions from './TextSolutions';
 import AIRecommendation from './AIRecommendation';
 import AskCogni from './AskCogni';
 import CodeReview from './CodeReview';
@@ -24,6 +23,7 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
     const [submissions, setSubmissions] = useState([]);
     const [submissionsLoading, setSubmissionsLoading] = useState(false);
     const [expandedSubmission, setExpandedSubmission] = useState(null);
+    const [solutionLanguage, setSolutionLanguage] = useState('python3');
 
     const activeTab = externalTab || internalTab;
     const setActiveTab = setExternalTab || setInternalTab;
@@ -93,6 +93,12 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                     className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'description' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
                 >
                     Description
+                </button>
+                <button
+                    onClick={() => setActiveTab('solutions')}
+                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'solutions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                >
+                    Solutions
                 </button>
                 <button
                     onClick={() => setActiveTab('ask-cogni')}
@@ -178,6 +184,34 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                         <AIRecommendation
                             currentDifficulty={clickedProblems?.difficulty || 'Medium'}
                         />
+                    </div>
+                </div>
+
+                {/* ===== SOLUTIONS TAB ===== */}
+                <div className={activeTab !== 'solutions' ? 'hidden' : 'p-5'}>
+                    <h2 className='font-semibold text-xl mb-4'>Official Solutions</h2>
+                    <div className='flex gap-2 mb-4 overflow-x-auto pb-2'>
+                        {['python3', 'cpp', 'java', 'nodejs'].map((lang) => (
+                            <button
+                                key={lang}
+                                onClick={() => setSolutionLanguage(lang)}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                                    (solutionLanguage === lang)
+                                    ? 'bg-red-500 text-white border-red-500' 
+                                    : 'bg-light-3 dark:bg-dark-4 text-gray-500 border-transparent hover:border-light-4'
+                                }`}
+                            >
+                                {lang === 'python3' ? 'Python' : lang.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className='bg-white dark:bg-dark-2 border border-light-4 dark:border-dark-4 rounded-lg overflow-hidden'>
+                        <div className='p-4'>
+                            <pre className='font-mono text-xs text-dark-1 dark:text-light-1 overflow-x-auto p-3 bg-light-2 dark:bg-dark-3 rounded leading-relaxed'>
+                                {clickedProblems?.solutions?.[solutionLanguage] || '// No solution available for this language yet.'}
+                            </pre>
+                        </div>
                     </div>
                 </div>
 

@@ -30,8 +30,13 @@ const Workspace = ({ problems }) => {
 					: null;
 				if (savedCode) {
 					setCode(savedCode);
+				} else if (problem.starterCodes && problem.starterCodes[language.value]) {
+					setCode(problem.starterCodes[language.value]);
 				} else if (problem.starterCode) {
+					// Fallback for legacy data
 					setCode(getStarterForLanguage(problem.starterCode, language.value));
+				} else {
+					setCode(mockComments[language.value]);
 				}
 			}
 		}

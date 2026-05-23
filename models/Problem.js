@@ -24,9 +24,19 @@ const ProblemSchema = Schema({
     category: {type: String},
     constraints: {type: String},
     companies: {type: [String], default: []},
-    starterCode: {type: String},
+    starterCodes: {
+      python3: {type: String},
+      cpp: {type: String},
+      java: {type: String},
+      nodejs: {type: String}
+    },
     difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Easy'},
-    solution: {type: String},
+    solutions: {
+      python3: {type: String},
+      cpp: {type: String},
+      java: {type: String},
+      nodejs: {type: String}
+    },
     videoId: {type: String},
     testCases: [{
       input: { type: [String], required: true },

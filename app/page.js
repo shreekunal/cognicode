@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { FaArrowRight, FaChartColumn, FaClock, FaCode, FaLightbulb, FaUserGear } from "react-icons/fa6";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,36 @@ export default function Home() {
   const cursorRef = useRef(null);
   const { data: session } = useSession();
   const userID = session?.user?._id;
+
+  const features = [
+    {
+      title: "AI Code Review",
+      description:
+        "Get instant feedback on your code quality, readability, performance tradeoffs, edge cases, refactor opportunities, and likely bugs as if a senior engineer was sitting right next to you during every review.",
+      Icon: FaCode,
+      large: true,
+    },
+    {
+      title: "Complexity Analysis",
+      description: "Automatically calculate Big O notation for your solutions to understand efficiency.",
+      Icon: FaChartColumn,
+    },
+    {
+      title: "Hint",
+      description: "Get the next useful nudge when you are close, without revealing the full solution.",
+      Icon: FaLightbulb,
+    },
+    {
+      title: "AI Powered Next Question Suggestions",
+      description: "Receive the next best problem recommendation based on your current progress and recent attempts.",
+      Icon: FaArrowRight,
+    },
+    {
+      title: "Hint Interview Mode",
+      description: "Practice in a timed interview flow with contextual hints that appear only when you need them.",
+      Icon: FaClock,
+    },
+  ];
 
   useEffect(() => {
     let ctx;
@@ -46,19 +77,6 @@ export default function Home() {
         });
       };
       document.addEventListener("mousemove", onMouseMove);
-
-      /* cursor — video hover */
-      // const videos = document.querySelectorAll(".duo-wrap video");
-      // videos.forEach((video) => {
-      //   video.addEventListener("mouseenter", () => {
-      //     cursor.innerHTML = "Scroll";
-      //     cursor.classList.add("cursor-text-active");
-      //   });
-      //   video.addEventListener("mouseleave", () => {
-      //     cursor.classList.remove("cursor-text-active");
-      //     cursor.innerHTML = "";
-      //   });
-      // });
 
       /* cursor — developer row hover (image preview) */
       const rows = document.querySelectorAll(".dev-row");
@@ -101,7 +119,7 @@ export default function Home() {
           <div className="hero-content">
             <h1>Code Smarter</h1>
             <h2>AI-Powered Mastery</h2>
-            
+
             <div className="hero-cta">
               <Link href={userID ? "/problems" : "/login"} className="main-cta">
                 Start Solving
@@ -113,7 +131,8 @@ export default function Home() {
         {/* ====== ABOUT ====== */}
         <section className="about-section">
           <div className="top">
-            <h1>We are CogniCode,</h1>
+            <h1>We are Cogni<span className="text-red-500">Code</span></h1>
+            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/coding.png`} alt="CogniCode logo" className="company-logo h-[15vh]" />
           </div>
           <div className="bottom">
             <div className="left">
@@ -121,8 +140,8 @@ export default function Home() {
             </div>
             <div className="right">
               <p>
-                CogniCode isn't just another coding platform. We use advanced AI to provide 
-                real-time code reviews, analyze your time and space complexity, and give 
+                CogniCode isn't just another coding platform. We use advanced AI to provide
+                real-time code reviews, analyze your time and space complexity, and give
                 human-like hints when you're stuck.
               </p>
               <button onClick={() => document.querySelector('.features-grid')?.scrollIntoView({ behavior: 'smooth' })}>Explore Features</button>
@@ -131,41 +150,27 @@ export default function Home() {
         </section>
 
         {/* ====== FEATURES BENTO ====== */}
-        <section className="features-grid">
-          <div className="feature-card large">
-            <img src="/coding.png" alt="AI Code Review" className="feature-icon" />
-            <div className="content">
-              <h4>AI Code Review</h4>
-              <p>Get instant feedback on your code quality, readability, and potential bugs as if a senior engineer was sitting right next to you.</p>
-            </div>
+        <section className="features-section">
+          <div className="features-head">
+            <p className="features-kicker">FEATURES</p>
+            <h3>Built to feel fast, focused, and intelligent.</h3>
+            <p>
+              Every block below is designed to do one job clearly, with less noise and a stronger visual rhythm.
+            </p>
           </div>
-          <div className="feature-card">
-            <img src="/assignment.png" alt="Complexity" className="feature-icon" />
-            <div className="content">
-              <h4>Complexity Analysis</h4>
-              <p>Automatically calculate Big O notation for your solutions to understand efficiency.</p>
-            </div>
-          </div>
-          <div className="feature-card">
-            <img src="/timer.png" alt="Timed" className="feature-icon" />
-            <div className="content">
-              <h4>Interview Mode</h4>
-              <p>Practice in a pressure-cooker environment with timed challenges and AI feedback.</p>
-            </div>
-          </div>
-          <div className="feature-card">
-            <img src="/interview.png" alt="Hints" className="feature-icon" />
-            <div className="content">
-              <h4>Smart Hints</h4>
-              <p>Never get stuck again. Our AI provides progressive hints that guide you without spoiling the answer.</p>
-            </div>
-          </div>
-          <div className="feature-card">
-            <img src="/p2p.png" alt="Community" className="feature-icon" />
-            <div className="content">
-              <h4>Community Support</h4>
-              <p>Connect with other learners, share solutions, and grow together in a collaborative environment.</p>
-            </div>
+
+          <div className="features-grid">
+            {features.map(({ title, description, Icon, large }) => (
+              <div key={title} className={`feature-card${large ? " large" : ""}`}>
+                <div className="feature-icon-wrap" aria-hidden="true">
+                  <Icon className="feature-icon" />
+                </div>
+                <div className="content">
+                  <h4>{title}</h4>
+                  <p>{description}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -177,30 +182,30 @@ export default function Home() {
           </p>
 
           <div className="elem">
-            <img className="left img1" src="/cognicode/duo/images/page4-img1.webp" alt="" />
+            <img className="left img1" src="/cognicode/Learn-left.png" alt="" />
             <div className="text">
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
             </div>
-            <img className="right img2" src="/cognicode/duo/images/page4-img2.webp" alt="" />
+            <img className="right img2" src="/cognicode/Learn-right.png" alt="" />
           </div>
 
           <div className="elem">
-            <img className="left img3" src="/cognicode/duo/images/page4-img3.webp" alt="" />
+            <img className="left img3" src="/cognicode/Problems-left.png" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
             </div>
-            <img className="right img4" src="/cognicode/duo/images/page4-img4.webp" alt="" />
+            <img className="right img4" src="/cognicode/Problems-right.png" alt="" />
           </div>
 
           <div className="elem">
-            <img className="left img1" src="/cognicode/duo/images/page3-image1.webp" alt="" />
+            <img className="left img1" src="/cognicode/Prepare&Learn-left.png" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
             </div>
-            <img className="right img2" src="/cognicode/duo/images/page3-image2.webp" alt="" />
+            <img className="right img2" src="/cognicode/Prepare&Learn-right.png" alt="" />
           </div>
         </section>
 

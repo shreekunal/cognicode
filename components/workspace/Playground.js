@@ -467,19 +467,28 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   }
 
   const onLanguageChange = (lang) => {
-    const currentDefault = currentProblem?.starterCode
-      ? getStarterForLanguage(currentProblem.starterCode, language.value)
-      : mockComments[language.value];
+    const currentDefault = currentProblem?.starterCodes?.[language.value] 
+      || (currentProblem?.starterCode ? getStarterForLanguage(currentProblem.starterCode, language.value) : mockComments[language.value]);
+    
     if (code && code !== currentDefault) {
       if (!window.confirm("Switching language will reset your code. Continue?")) return;
     }
+    
     setLanguage(lang);
+    const nextDefault = currentProblem?.starterCodes?.[lang.value]
+      || (currentProblem?.starterCode ? getStarterForLanguage(currentProblem.starterCode, lang.value) : mockComments[lang.value]);
+    setCode(nextDefault);
   };
 
   const handleResetCode = () => {
     if (!window.confirm("Reset code to starter template? Your changes will be lost.")) return;
-    if (currentProblem?.starterCode) setCode(getStarterForLanguage(currentProblem.starterCode, language.value));
-    else setCode(mockComments[language.value]);
+    if (currentProblem?.starterCodes?.[language.value]) {
+      setCode(currentProblem.starterCodes[language.value]);
+    } else if (currentProblem?.starterCode) {
+      setCode(getStarterForLanguage(currentProblem.starterCode, language.value));
+    } else {
+      setCode(mockComments[language.value]);
+    }
   };
 
   const toggleLineNumbers = () => setEditorSettings((s) => ({ ...s, showLineNumbers: !s.showLineNumbers }));
