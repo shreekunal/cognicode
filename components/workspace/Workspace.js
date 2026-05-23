@@ -78,6 +78,7 @@ const Workspace = ({ problems }) => {
 					setCode={setCode} 
 					language={language} 
 					setLanguage={setLanguage}
+					setLeftPanelTab={setActiveTab}
 				/>
 			</Split>
 			<div className="md:hidden px-1 flex-grow overflow-hidden flex flex-col">
@@ -97,6 +98,7 @@ const Workspace = ({ problems }) => {
 					setCode={setCode} 
 					language={language} 
 					setLanguage={setLanguage}
+					setLeftPanelTab={setActiveTab}
 				/>
 			</div>
 		</div>

@@ -32,7 +32,7 @@ export default function Home() {
       });
       tl1.to(".hero-section h1", { x: -100 }, "hero");
       tl1.to(".hero-section h2", { x: 100 }, "hero");
-      tl1.to(".hero-section video", { width: "93%" }, "hero");
+      tl1.to(".hero-visual", { width: "93%", opacity: 1 }, "hero");
 
       /* ---------- custom cursor ---------- */
       const cursor = cursorRef.current;
@@ -98,10 +98,15 @@ export default function Home() {
 
         {/* ====== HERO ====== */}
         <section className="hero-section">
-          <div>
-            <h1>Code Practice</h1>
-            <h2>AI-Powered Growth</h2>
-            <video autoPlay muted loop playsInline poster="/cognicode/duo/images/page4-img1.webp" src="/cognicode/duo/Video/section1-video.mp4" />
+          <div className="hero-content">
+            <h1>Code Smarter</h1>
+            <h2>AI-Powered Mastery</h2>
+            
+            <div className="hero-cta">
+              <Link href={userID ? "/problems" : "/login"} className="main-cta">
+                Start Solving
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -112,25 +117,63 @@ export default function Home() {
           </div>
           <div className="bottom">
             <div className="left">
-              <h3>AN AI-POWERED PLATFORM BUILT TO SHARPEN YOUR CODING SKILLS</h3>
+              <h3>YOUR INTELLIGENT COMPANION FOR ALGORITHMIC EXCELLENCE</h3>
             </div>
             <div className="right">
               <p>
-                We combine structured learning paths with AI-driven code review, complexity
-                analysis, and smart recommendations to accelerate your problem-solving journey.
-                Practice 45+ curated problems, get instant hints, and track your progress —
-                all in one place.
+                CogniCode isn't just another coding platform. We use advanced AI to provide 
+                real-time code reviews, analyze your time and space complexity, and give 
+                human-like hints when you're stuck.
               </p>
-              <button onClick={() => document.querySelector('.developers-section')?.scrollIntoView({ behavior: 'smooth' })}>About us</button>
+              <button onClick={() => document.querySelector('.features-grid')?.scrollIntoView({ behavior: 'smooth' })}>Explore Features</button>
             </div>
           </div>
         </section>
 
-        {/* ====== SERVICES ====== */}
+        {/* ====== FEATURES BENTO ====== */}
+        <section className="features-grid">
+          <div className="feature-card large">
+            <img src="/coding.png" alt="AI Code Review" className="feature-icon" />
+            <div className="content">
+              <h4>AI Code Review</h4>
+              <p>Get instant feedback on your code quality, readability, and potential bugs as if a senior engineer was sitting right next to you.</p>
+            </div>
+          </div>
+          <div className="feature-card">
+            <img src="/assignment.png" alt="Complexity" className="feature-icon" />
+            <div className="content">
+              <h4>Complexity Analysis</h4>
+              <p>Automatically calculate Big O notation for your solutions to understand efficiency.</p>
+            </div>
+          </div>
+          <div className="feature-card">
+            <img src="/timer.png" alt="Timed" className="feature-icon" />
+            <div className="content">
+              <h4>Interview Mode</h4>
+              <p>Practice in a pressure-cooker environment with timed challenges and AI feedback.</p>
+            </div>
+          </div>
+          <div className="feature-card">
+            <img src="/interview.png" alt="Hints" className="feature-icon" />
+            <div className="content">
+              <h4>Smart Hints</h4>
+              <p>Never get stuck again. Our AI provides progressive hints that guide you without spoiling the answer.</p>
+            </div>
+          </div>
+          <div className="feature-card">
+            <img src="/p2p.png" alt="Community" className="feature-icon" />
+            <div className="content">
+              <h4>Community Support</h4>
+              <p>Connect with other learners, share solutions, and grow together in a collaborative environment.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ====== SERVICES (Redirects) ====== */}
         <section className="services-section">
           <p>
-            EXPLORE OUR <br />
-            FEATURES
+            READY TO <br />
+            GET STARTED?
           </p>
 
           <div className="elem">
@@ -149,6 +192,15 @@ export default function Home() {
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
             </div>
             <img className="right img4" src="/cognicode/duo/images/page4-img4.webp" alt="" />
+          </div>
+
+          <div className="elem">
+            <img className="left img1" src="/cognicode/duo/images/page3-image1.webp" alt="" />
+            <div className="text">
+              <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
+              <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
+            </div>
+            <img className="right img2" src="/cognicode/duo/images/page3-image2.webp" alt="" />
           </div>
         </section>
 
@@ -190,6 +242,7 @@ export default function Home() {
             <div className="footer-links">
               <Link href="/learn">Learn</Link>
               <Link href="/problems">Problems</Link>
+              <Link href="/problems">Prepare & Test</Link>
               <Link href="/profile">Profile</Link>
             </div>
           </div>

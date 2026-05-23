@@ -3,17 +3,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Split from "react-split";
 import CodeEditorWindow from "../shared/CodeEditorWindow";
-import OutputWindow from "../shared/OutputWindow";
 import CodeReview from "../CodeReview";
 import { languagesData, mockComments, getStarterForLanguage } from "@/constants";
-import { FiCheckCircle, FiAlertTriangle, FiRotateCcw, FiHelpCircle, FiCompass, FiTarget, FiCode, FiDownload, FiMaximize, FiMinimize, FiSettings } from "react-icons/fi";
+import { FiCheckCircle, FiAlertTriangle, FiRotateCcw, FiHelpCircle, FiCompass, FiTarget, FiCode, FiDownload, FiMaximize, FiMinimize, FiSettings, FiMessageSquare, FiCopy } from "react-icons/fi";
 import { BsLightbulb } from "react-icons/bs";
 import Timer from "../shared/Timer";
 import axios from "axios";
 import Loader from "../shared/Loader";
 import { useParams } from "next/navigation";
+import { toast } from "react-hot-toast";
 
-const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setCode, language, setLanguage }) => {
+const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setCode, language, setLanguage, setLeftPanelTab }) => {
 
   const defaultEditorSettings = {
     fontStyle: "mono",
@@ -49,8 +49,25 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const [theme, setTheme] = useState(themeOptions[0]);
   const [fontSize, setFontSize] = useState({ value: '14', label: '14px' });
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const copyAndAskCogni = (data) => {
+    let promptText = "";
+    if (data.error && !data.caseInput) {
+      promptText = `I'm getting a compilation/execution error:\n${data.error}\n\nCan you help me fix this code?`;
+    } else if (data.caseInput) {
+      promptText = `My code is failing on this test case:\nInput: ${data.caseInput}\nExpected Output: ${data.caseExpected}\nActual Output: ${data.caseOutput}\n\nCan you help me understand why it's failing?`;
+    } else if (data.failedTestCase) {
+      promptText = `My submission failed on this test case:\nInput: ${data.failedTestCase.input}\nExpected Output: ${data.failedTestCase.expectedOutput}\nActual Output: ${data.failedTestCase.actualOutput}\n\nCan you help me debug this?`;
+    } else {
+      promptText = `I need help with my current solution for the problem "${currentProblem?.title}". Can you review my code?`;
+    }
+
+    navigator.clipboard.writeText(promptText);
+    toast.success("Error details copied to clipboard!");
+    if (setLeftPanelTab) setLeftPanelTab("ask-cogni");
+  };
   const [clickedProblemId, setClickedProblemId] = useState(null);
-  const [activeTab, setActiveTab] = useState(null); // null | "results" | "hint" | "testcases"
+  const [activeTab, setActiveTab] = useState(null); // null | "hint" | "testcases"
   const [currentProblem, setCurrentProblem] = useState(null);
   const [selectedTestCaseIndex, setSelectedTestCaseIndex] = useState(0);
 
@@ -316,7 +333,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   const handleCompile = async (input = null, runAll = false) => {
     setIsCodeRunning(true);
-    setActiveTab("results");
+    setActiveTab("testcases");
 
     if (runAll && !isCustomInput) {
       const newResults = [...testCaseResults];
@@ -341,6 +358,15 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         }
       }
       setTestCaseResults(newResults);
+      
+      // Set overall status for the top header
+      const allPassed = newResults.every(r => r?.status === 'passed');
+      setOutputDetails(prev => ({
+        ...prev,
+        resultTitle: allPassed ? 'Accepted' : 'Wrong Answer',
+        resultStatus: allPassed ? 'accepted' : 'wrong-answer',
+      }));
+
       setIsCodeRunning(false);
       return;
     }
@@ -412,16 +438,29 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
       const data = await res.json();
       if (data.isAccepted === "accepted") {
         setSubmitted(data);
-        setOutputDetails({ output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: true });
+        setOutputDetails({ 
+          ...data,
+          output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, 
+          submitted: true, 
+          accepted: true 
+        });
         setActiveTab(null); // Close the bottom panel so only the AI analysis tab is prominent
       } else {
         setSubmitted(data);
-        setOutputDetails({ output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, submitted: true, accepted: false });
-        setActiveTab("results");
+        setOutputDetails({ 
+          ...data,
+          output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, 
+          submitted: true, 
+          accepted: false,
+          caseInput: data.failedTestCase?.input,
+          caseExpected: data.failedTestCase?.expectedOutput,
+          caseOutput: data.failedTestCase?.actualOutput
+        });
+        setActiveTab("testcases");
       }
     } catch (error) {
       setOutputDetails({ output: "Submission failed: " + error.message, submitted: true, accepted: false });
-      setActiveTab("results");
+      setActiveTab("testcases");
     } finally {
       setIsCodeSubmitting(false);
     }
@@ -452,85 +491,113 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     return (
       <div className={`w-full h-full min-h-0 flex flex-col overflow-hidden ${additionalStyles}`}>
         {activeTab === "testcases" && (
-          <div className="rounded border border-light-4 dark:border-dark-4 bg-light-2 dark:bg-dark-3 shadow-sm overflow-hidden">
-            <div className="flex gap-1.5 overflow-x-auto px-2 py-2 border-b border-light-4 dark:border-dark-4 bg-light-3/30 dark:bg-dark-4/20">
-              {visibleTestCases.map((testCase, index) => {
-                const isActive = index === selectedTestCaseIndex && !isCustomInput;
-                const result = testCaseResults[index];
-                return (
-                  <button
-                    key={`${currentProblem?.id || 'case'}-${index}`}
-                    onClick={() => {
-                      setSelectedTestCaseIndex(index);
-                      setIsCustomInput(false);
-                    }}
-                    className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border flex items-center gap-1 ${isActive
-                      ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                      : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
-                      }`}
+          <div className="flex flex-col gap-2 h-full overflow-y-auto p-1">
+            {outputDetails && (
+              <div className="flex items-center justify-between px-2 py-1 shrink-0">
+                <div className="flex items-center gap-3">
+                  <h4 className={`text-lg font-bold ${outputDetails.resultStatus === 'accepted' ? 'text-green-500' : 'text-red-500'}`}>
+                    {outputDetails.resultTitle || (outputDetails.resultStatus === 'accepted' ? 'Accepted' : 'Wrong Answer')}
+                  </h4>
+                  {isCodeRunning || isCodeSubmitting ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" /> : null}
+                </div>
+                
+                {outputDetails && (outputDetails.error || (outputDetails.resultStatus !== 'accepted')) && (
+                  <button 
+                    onClick={() => copyAndAskCogni(outputDetails)}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded transition-colors border border-red-500/20"
                   >
-                    {result?.status === 'passed' && <FiCheckCircle size={10} className="text-green-400" />}
-                    {result?.status === 'failed' && <FiAlertTriangle size={10} className="text-red-400" />}
-                    Case {index + 1}
+                    <FiMessageSquare size={12} />
+                    Ask Cogni for Help
                   </button>
-                );
-              })}
-              <div className="h-5 w-[1px] bg-light-4 dark:bg-dark-4 mx-1" />
-              <button
-                onClick={() => setIsCustomInput(true)}
-                className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border ${isCustomInput
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                  : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
-                  }`}
-              >
-                Custom Input
-              </button>
-              {!isCustomInput && visibleTestCases.length > 0 && (
+                )}
+              </div>
+            )}
+
+            <div className="rounded border border-light-4 dark:border-dark-4 bg-light-2 dark:bg-dark-3 shadow-sm overflow-hidden shrink-0">
+              <div className="flex gap-1.5 overflow-x-auto px-2 py-2 border-b border-light-4 dark:border-dark-4 bg-light-3/30 dark:bg-dark-4/20">
+                {visibleTestCases.map((testCase, index) => {
+                  const isActive = index === selectedTestCaseIndex && !isCustomInput;
+                  const result = testCaseResults[index];
+                  return (
+                    <button
+                      key={`${currentProblem?.id || 'case'}-${index}`}
+                      onClick={() => {
+                        setSelectedTestCaseIndex(index);
+                        setIsCustomInput(false);
+                      }}
+                      className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border flex items-center gap-1 ${isActive
+                        ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                        : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
+                        }`}
+                    >
+                      {result?.status === 'passed' && <FiCheckCircle size={10} className="text-green-400" />}
+                      {result?.status === 'failed' && <FiAlertTriangle size={10} className="text-red-400" />}
+                      Case {index + 1}
+                    </button>
+                  );
+                })}
+                <div className="h-5 w-[1px] bg-light-4 dark:bg-dark-4 mx-1" />
                 <button
-                  onClick={() => handleCompile(null, true)}
-                  disabled={isCodeRunning}
-                  className="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold transition-all border bg-green-600 text-white border-green-600 hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-1 shadow-sm ml-auto"
+                  onClick={() => setIsCustomInput(true)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border ${isCustomInput
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
+                    }`}
                 >
-                  {isCodeRunning ? <Loader /> : <><FiCheckCircle size={10} /> Run All</>}
+                  Custom Input
                 </button>
+              </div>
+
+              {isCustomInput ? (
+                <div className={`px-3 py-3 rounded-lg border ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                  <div className={`text-[12px] uppercase tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} mb-0.5 font-bold`}>Your Input</div>
+                  <textarea
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="Enter custom input here..."
+                    className={`w-full h-24 p-2 rounded-lg ${isDarkMode ? 'bg-dark-2 text-white border-dark-4' : 'bg-white text-dark-1 border-light-4'} font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500`}
+                  />
+                  {outputDetails && !outputDetails.caseInput && !outputDetails.error && (
+                    <div className="mt-3">
+                      <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Actual output</div>
+                      <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>
+                        {outputDetails.output || '(No output)'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : selectedTestCase ? (
+                <div className="grid gap-2 px-2 py-3 md:grid-cols-2">
+                  <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                    <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Input</div>
+                    <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{selectedTestCaseInput || 'No input available'}</div>
+                  </div>
+                  <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
+                    <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Expected output</div>
+                    <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{formatCaseValue(selectedTestCase.output) || 'No output available'}</div>
+                  </div>
+                  {testCaseResults[selectedTestCaseIndex] && (
+                    <div className={`rounded-lg border p-3 md:col-span-2 ${testCaseResults[selectedTestCaseIndex].status === 'passed' ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+                      <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${testCaseResults[selectedTestCaseIndex].status === 'passed' ? 'text-green-500' : 'text-red-500'}`}>
+                        Actual output {testCaseResults[selectedTestCaseIndex].status === 'passed' ? '(Passed)' : '(Failed)'}
+                      </div>
+                      <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>
+                        {testCaseResults[selectedTestCaseIndex].actualOutput || '(No output)'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="px-3 py-4 text-xs text-gray-500 dark:text-gray-400">No test cases available.</div>
               )}
             </div>
-
-            {isCustomInput ? (
-              <div className={`px-3 py-3 rounded-lg border ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
-                <div className={`text-[12px] uppercase tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} mb-0.5 font-bold`}>Your Input</div>
-                <textarea
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                  placeholder="Enter custom input here..."
-                  className={`w-full h-24 p-2 rounded-lg ${isDarkMode ? 'bg-dark-2 text-white border-dark-4' : 'bg-white text-dark-1 border-light-4'} font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500`}
-                />
+            
+            {/* Show execution error details if any (e.g. Compilation Error) */}
+            {outputDetails && (outputDetails.error && !outputDetails.caseInput) && (
+              <div className="mt-1 rounded-md border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-300 whitespace-pre-wrap font-mono">
+                {outputDetails.error}
               </div>
-            ) : selectedTestCase ? (
-              <div className="grid gap-2 px-2 py-3 md:grid-cols-2">
-                <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
-                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Input</div>
-                  <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{selectedTestCaseInput || 'No input available'}</div>
-                </div>
-                <div className={`rounded-lg border p-3 ${isDarkMode ? 'border-dark-4 bg-dark-2 text-white' : 'border-light-4 bg-white text-dark-1'}`}>
-                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-500'}`}>Expected output</div>
-                  <div className={`whitespace-pre-wrap font-mono text-[12px] leading-5 overflow-auto max-h-24 bg-transparent rounded-none shadow-none p-0 ${isDarkMode ? 'text-white' : 'text-dark-1'}`}>{formatCaseValue(selectedTestCase.output) || 'No output available'}</div>
-                </div>
-              </div>
-            ) : (
-              <div className="px-3 py-4 text-xs text-gray-500 dark:text-gray-400">No test cases available.</div>
             )}
-          </div>
-        )}
-
-        {activeTab === "results" && (
-          <div className="flex flex-1 min-h-0 flex-col gap-2 overflow-hidden">
-            <OutputWindow
-              outputDetails={outputDetails}
-              additionalStyles={additionalStyles}
-              theme={isDarkMode ? "dark" : "light"}
-              isLoading={isCodeRunning || isCodeSubmitting}
-            />
           </div>
         )}
 
@@ -603,20 +670,6 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           <FiTarget size={14} />
           Test Cases
         </button>
-        {outputDetails && (
-          <>
-            <span className="text-gray-400">&gt;</span>
-            <button
-              onClick={() => setActiveTab((prev) => (prev === 'results' ? null : 'results'))}
-              className={`flex items-center gap-1 transition-colors ${activeTab === 'results'
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-2'}`}
-            >
-              <FiCheckCircle size={14} />
-              Test Result
-            </button>
-          </>
-        )}
         <div className="flex-grow" />
         <button
           onClick={() => setActiveTab(null)}
@@ -817,7 +870,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <button
-            onClick={() => handleCompile()}
+            onClick={() => handleCompile(null, true)}
             disabled={!code}
             title="Run (Ctrl+Enter)"
             className={`px-3 py-1 rounded-lg text-xs transition-colors flex items-center justify-center min-w-[60px] ${isDarkMode ? 'bg-[#2f2f2f] text-white hover:bg-[#3a3a3a]' : 'bg-light-3 text-dark-1 hover:bg-light-4'}`}

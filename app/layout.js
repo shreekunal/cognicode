@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: "CogniCode — AI-Powered Coding Practice",
-  description: "AI-powered coding practice platform with 45+ problems, instant code review, complexity analysis, and an AI tutor to help you master data structures and algorithms.",
+  description: "AI-powered coding practice platform with 100+ problems, instant code review, complexity analysis, and an AI tutor to help you master data structures and algorithms.",
   keywords: ["coding practice", "DSA", "algorithms", "data structures", "AI code review", "LeetCode alternative"],
   openGraph: {
     title: "CogniCode — AI-Powered Coding Practice",

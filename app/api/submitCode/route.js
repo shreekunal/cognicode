@@ -56,6 +56,7 @@ export async function POST(req) {
         let passedCount = 0;
         let lastOutput = '';
         let lastExecData = {};
+        let failedTestCase = null;
 
         for (let i = 0; i < totalTestCases; i++) {
             const data = results[i] || { output: '', cpuTime: 0, memory: 0 };
@@ -64,6 +65,12 @@ export async function POST(req) {
 
             if (data.output?.trim() === expectedOutputs[i].trim()) {
                 passedCount++;
+            } else if (!failedTestCase) {
+                failedTestCase = {
+                    input: inputs[i],
+                    expectedOutput: expectedOutputs[i],
+                    actualOutput: data.output
+                };
             }
         }
 
@@ -87,7 +94,8 @@ export async function POST(req) {
                 passedTestCases: passedCount,
                 totalTestCases,
                 cpuTime: lastExecData.cpuTime || '0',
-                memory: lastExecData.memory || '0'
+                memory: lastExecData.memory || '0',
+                failedTestCase
             }), { status: 201 });
         } else {
             if ((isAccepted === "accepted" && contest) || !contest) {
@@ -105,7 +113,8 @@ export async function POST(req) {
                     passedTestCases: passedCount,
                     totalTestCases,
                     cpuTime: lastExecData.cpuTime || '0',
-                    memory: lastExecData.memory || '0'
+                    memory: lastExecData.memory || '0',
+                    failedTestCase
                 }), { status: 201 });
             } else {
                 return new Response(JSON.stringify({
@@ -114,7 +123,8 @@ export async function POST(req) {
                     passedTestCases: passedCount,
                     totalTestCases,
                     cpuTime: lastExecData.cpuTime || '0',
-                    memory: lastExecData.memory || '0'
+                    memory: lastExecData.memory || '0',
+                    failedTestCase
                 }), { status: 200 });
             }
         }

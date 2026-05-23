@@ -259,12 +259,106 @@ html.dark .hero-section {
   transform-origin: left;
 }
 
-.hero-section video {
-  position: relative;
-  margin-top: 10vh;
-  width: 50%;
-  left: 50%;
-  transform: translate(-50%, 0);
+.hero-section video,
+.hero-visual {
+  display: none;
+}
+
+.hero-cta {
+  margin-top: 15vh;
+  display: flex;
+  justify-content: center;
+}
+
+.main-cta {
+  padding: 18px 50px;
+  background-color: #e63946;
+  color: #fff;
+  text-decoration: none;
+  font-size: 22px;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(230, 57, 70, 0.2);
+}
+
+.main-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(230, 57, 70, 0.4);
+  background-color: #d62839;
+}
+
+/* ---------- features grid ---------- */
+.features-grid {
+  padding: 8vw 5.5vw;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  background-color: #fff;
+}
+
+html.dark .features-grid {
+  background-color: #111;
+}
+
+.feature-card {
+  background: #f9f9f9;
+  padding: 40px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  transition: all 0.3s ease;
+  border: 1px solid #eee;
+  min-height: 300px;
+}
+
+html.dark .feature-card {
+  background: #1a1a1a;
+  border-color: #222;
+}
+
+.feature-card.large {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  border-color: #e63946;
+}
+
+.feature-icon {
+  width: 80px !important;
+  height: 80px !important;
+  object-fit: contain !important;
+  flex-shrink: 0;
+  display: block !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.feature-card.large .feature-icon {
+  width: 140px !important;
+  height: 140px !important;
+}
+
+.feature-card h4 {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #111;
+}
+
+html.dark .feature-card h4 {
+  color: #fff;
+}
+
+.feature-card p {
+  font-size: 17px;
+  line-height: 1.6;
+  opacity: 0.7;
 }
 
 /* ---------- about section ---------- */
@@ -544,6 +638,24 @@ html.dark .footer-links a {
   .hero-section h1,
   .hero-section h2 {
     font-size: 48px;
+  }
+
+  .hero-visual {
+    width: 85%;
+  }
+
+  .code-body code {
+    font-size: 12px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-card.large {
+    grid-column: span 1;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .about-section .top h1 {
