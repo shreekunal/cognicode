@@ -212,11 +212,17 @@ html.dark #duo-nav .part-2 a.duo-nav-active {
   object-fit: contain;
 }
 
+.duo-profile-btn img.no-invert {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 html.dark .duo-theme-btn img {
   filter: invert(1) brightness(2);
 }
 
-html.dark .duo-profile-btn img {
+html.dark .duo-profile-btn img:not(.no-invert) {
   filter: invert(1) brightness(2);
 }
 

@@ -95,7 +95,7 @@ export default function DuoNav() {
                     {userID ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-red-600 text-white flex items-center justify-center text-sm font-bold uppercase border border-light-4 dark:border-dark-4">
                             {userImage ? (
-                                <img src={userImage} alt="Profile" className="w-full h-full object-cover" />
+                                <img src={userImage} alt="Profile" className="w-full h-full object-cover no-invert" />
                             ) : (
                                 userEmail.charAt(0)
                             )}

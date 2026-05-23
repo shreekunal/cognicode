@@ -3,7 +3,7 @@ import React from "react";
 const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
   const isLightTheme = theme === "light";
   const cpuTime = outputDetails?.cpuTime !== undefined && outputDetails?.cpuTime !== null
-    ? `${outputDetails.cpuTime}s`
+    ? `${Math.round(outputDetails.cpuTime * 1000)} ms`
     : null;
   const memory = outputDetails?.memory !== undefined && outputDetails?.memory !== null
     ? `${outputDetails.memory}b`
@@ -30,7 +30,7 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
   const renderCodeBlock = (value, tone = "text-white") => {
     if (value === null || value === undefined) {
       return (
-        <pre className={`whitespace-pre-wrap rounded-lg p-3 font-mono text-xs leading-5 text-gray-500 italic ${panelClass}`}>
+        <pre className={`whitespace-pre-wrap rounded-md p-1 font-mono text-xs leading-5 text-gray-500 italic ${panelClass}`}>
           No output available
         </pre>
       );
@@ -38,14 +38,14 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
 
     if (value === "") {
       return (
-        <pre className={`whitespace-pre-wrap rounded-lg p-3 font-mono text-xs leading-5 text-gray-500 italic ${panelClass}`}>
+        <pre className={`whitespace-pre-wrap rounded-md p-1 font-mono text-xs leading-5 text-gray-500 italic ${panelClass}`}>
           (Execution successful — no output)
         </pre>
       );
     }
 
     return (
-      <pre className={`whitespace-pre-wrap rounded-lg p-3 font-mono text-xs leading-5 ${panelClass} ${tone}`}>
+      <pre className={`whitespace-pre-wrap rounded-md p-1 font-mono text-xs leading-5 ${tone} bg-transparent`}>
         {value}
       </pre>
     );
@@ -54,30 +54,30 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
   return (
     <div className={`!w-full flex-1 min-h-0 flex flex-col ${additionalStyles}`}>
       {!outputDetails ? (
-        <div className={`w-full flex-1 min-h-0 rounded-lg ${panelClass}`} />
+        <div className={`w-full flex-1 min-h-0 rounded-md ${panelClass}`} />
       ) : outputDetails.submitted ? (
-        <div className={`w-full flex-1 min-h-0 flex flex-col gap-3 rounded-lg p-4 overflow-y-auto ${panelClass}`}>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h4 className={`text-2xl font-bold ${outputDetails.accepted ? "text-green-500" : "text-red-500"}`}>
+        <div className={`w-full flex-1 min-h-0 flex flex-col gap-1 rounded-md p-2 overflow-y-auto ${panelClass}`}>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h4 className={`text-xl font-bold ${outputDetails.accepted ? "text-green-500" : "text-red-500"}`}>
               {outputDetails.accepted ? "Accepted" : "Wrong Answer"}
             </h4>
-            <span className={`text-sm ${runtimeTextClass}`}>Runtime: {runtime}</span>
+            <span className={`text-[11px] ${runtimeTextClass}`}>Runtime: {runtime}</span>
           </div>
 
           {hasCaseDetails && (
-            <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="grid gap-2 md:grid-cols-2">
                 <div>
-                  <div className={`mb-2 text-sm ${subtleTextClass}`}>Input</div>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Input</div>
                   {renderCodeBlock(outputDetails.caseInput, "text-white")}
                 </div>
                 <div>
-                  <div className={`mb-2 text-sm ${subtleTextClass}`}>Output</div>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Output</div>
                   {renderCodeBlock(outputDetails.caseOutput ?? outputDetails.output, outputDetails.accepted ? "text-green-300" : "text-red-300")}
                 </div>
               </div>
               <div>
-                <div className={`mb-2 text-sm ${subtleTextClass}`}>Expected</div>
+                <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Expected</div>
                 {renderCodeBlock(outputDetails.caseExpected, "text-green-300")}
               </div>
             </div>
@@ -85,10 +85,10 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
 
           {!outputDetails.accepted && !hasCaseDetails && (
             <div>
-              <div className={`mb-2 text-sm ${subtleTextClass}`}>Output</div>
+              <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Output</div>
               {renderCodeBlock(outputDetails.output, compileErrorText ? "text-red-300" : "text-white")}
               {compileErrorText && (
-                <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+                <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-300">
                   {compileErrorText}
                 </div>
               )}
@@ -96,28 +96,28 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
           )}
         </div>
       ) : (
-        <div className={`w-full flex-1 min-h-0 flex flex-col gap-3 rounded-lg p-4 overflow-y-auto ${panelClass}`}>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h4 className={`text-2xl font-bold ${statusClass}`}>
+        <div className={`w-full flex-1 min-h-0 flex flex-col gap-2 rounded-md p-2 overflow-y-auto ${panelClass}`}>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h4 className={`text-xl font-bold ${statusClass}`}>
               {title}
             </h4>
-            <span className={`text-sm ${runtimeTextClass}`}>Runtime: {runtime}</span>
+            <span className={`text-[11px] ${runtimeTextClass}`}>Runtime: {runtime}</span>
           </div>
 
           {hasCaseDetails && (
-            <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="grid gap-2 md:grid-cols-2">
                 <div>
-                  <div className={`mb-2 text-sm ${subtleTextClass}`}>Input</div>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Input</div>
                   {renderCodeBlock(outputDetails.caseInput)}
                 </div>
                 <div>
-                  <div className={`mb-2 text-sm ${subtleTextClass}`}>Output</div>
+                  <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Output</div>
                   {renderCodeBlock(outputDetails.caseOutput ?? outputDetails.output, statusClass)}
                 </div>
               </div>
               <div>
-                <div className={`mb-2 text-sm ${subtleTextClass}`}>Expected</div>
+                <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Expected</div>
                 {renderCodeBlock(outputDetails.caseExpected, "text-green-300")}
               </div>
             </div>
@@ -125,10 +125,10 @@ const OutputWindow = ({ outputDetails, additionalStyles, theme = "dark" }) => {
 
           {!hasCaseDetails && (
             <div>
-              <div className={`mb-2 text-sm ${subtleTextClass}`}>Output</div>
+              <div className={`mb-0.5 text-[12px] uppercase font-bold tracking-tight ${subtleTextClass}`}>Output</div>
               {renderCodeBlock(outputDetails.output, compileErrorText ? "text-red-300" : "text-white")}
               {compileErrorText && (
-                <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+                <div className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-300">
                   {compileErrorText}
                 </div>
               )}

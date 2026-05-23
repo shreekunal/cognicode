@@ -371,7 +371,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           output: normalizedOutput,
           resultTitle: isPassed ? 'Accepted' : (data.error && !data.output ? 'Compilation Error' : 'Wrong Answer'),
           resultStatus: isPassed ? 'accepted' : 'wrong-answer',
-          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${data.cpuTime}s` : '0 ms',
+          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${Math.round(data.cpuTime * 1000)} ms` : '0 ms',
           caseIndex: selectedTestCaseIndex,
           caseInput: selectedTestCaseInput,
           caseOutput: actualOutput,
@@ -389,7 +389,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           output: normalizedOutput,
           resultTitle: data.error && !data.output ? 'Compilation Error' : 'Output',
           resultStatus: data.error && !data.output ? 'compilation-error' : 'output',
-          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${data.cpuTime}s` : '0 ms',
+          resultRuntime: data.cpuTime !== undefined && data.cpuTime !== null ? `${Math.round(data.cpuTime * 1000)} ms` : '0 ms',
         });
       }
       setIsCodeRunning(false);
@@ -479,8 +479,8 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     return (
       <div className={`w-full h-full min-h-0 flex flex-col overflow-hidden ${additionalStyles}`}>
         {activeTab === "testcases" && (
-          <div className="rounded-2xl border border-light-4 dark:border-dark-4 bg-light-2 dark:bg-dark-3 shadow-sm overflow-hidden">
-            <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-light-4 dark:border-dark-4 bg-light-3/30 dark:bg-dark-4/20">
+          <div className="rounded border border-light-4 dark:border-dark-4 bg-light-2 dark:bg-dark-3 shadow-sm overflow-hidden">
+            <div className="flex gap-1.5 overflow-x-auto px-2 py-2 border-b border-light-4 dark:border-dark-4 bg-light-3/30 dark:bg-dark-4/20">
               {visibleTestCases.map((testCase, index) => {
                 const isActive = index === selectedTestCaseIndex && !isCustomInput;
                 const result = testCaseResults[index];
@@ -491,21 +491,21 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                       setSelectedTestCaseIndex(index);
                       setIsCustomInput(false);
                     }}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all border flex items-center gap-1.5 ${isActive
+                    className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border flex items-center gap-1 ${isActive
                       ? 'bg-red-600 text-white border-red-600 shadow-sm'
                       : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
                       }`}
                   >
-                    {result?.status === 'passed' && <FiCheckCircle size={12} className="text-green-400" />}
-                    {result?.status === 'failed' && <FiAlertTriangle size={12} className="text-red-400" />}
+                    {result?.status === 'passed' && <FiCheckCircle size={10} className="text-green-400" />}
+                    {result?.status === 'failed' && <FiAlertTriangle size={10} className="text-red-400" />}
                     Case {index + 1}
                   </button>
                 );
               })}
-              <div className="h-6 w-[1px] bg-light-4 dark:bg-dark-4 mx-1" />
+              <div className="h-5 w-[1px] bg-light-4 dark:bg-dark-4 mx-1" />
               <button
                 onClick={() => setIsCustomInput(true)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all border ${isCustomInput
+                className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition-all border ${isCustomInput
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                   : 'bg-light-3 dark:bg-dark-4 text-gray-600 dark:text-gray-300 border-transparent hover:border-light-4 dark:hover:border-dark-3'
                   }`}
@@ -516,64 +516,64 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                 <button
                   onClick={() => handleCompile(null, true)}
                   disabled={isCodeRunning}
-                  className="shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition-all border bg-green-600 text-white border-green-600 hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-1.5 shadow-sm ml-auto"
+                  className="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold transition-all border bg-green-600 text-white border-green-600 hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-1 shadow-sm ml-auto"
                 >
-                  {isCodeRunning ? <Loader /> : <><FiCheckCircle size={12} /> Run All</>}
+                  {isCodeRunning ? <Loader /> : <><FiCheckCircle size={10} /> Run All</>}
                 </button>
               )}
             </div>
 
             {isCustomInput ? (
-              <div className="px-4 py-4">
-                <div className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 font-bold">Your Input</div>
+              <div className="px-3 py-3">
+                <div className="text-[12px] uppercase tracking-tight text-gray-200 mb-0.5 font-bold">Your Input</div>
                 <textarea
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   placeholder="Enter custom input here..."
-                  className="w-full h-32 p-3 rounded-xl border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-2 font-mono text-xs text-dark-1 dark:text-light-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full h-24 p-2 rounded-lg border border-light-4 dark:border-dark-4 bg-transparent font-mono text-xs text-dark-1 dark:text-light-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             ) : selectedTestCase ? (
-              <div className="grid gap-3 px-4 py-4 md:grid-cols-2">
-                <div className="rounded-xl border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-2 p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 font-bold">Input</div>
-                  <pre className="whitespace-pre-wrap font-mono text-xs text-dark-1 dark:text-light-1 leading-5 overflow-auto max-h-28">{selectedTestCaseInput || 'No input available'}</pre>
+              <div className="grid gap-2 px-3 py-3 md:grid-cols-2">
+                <div className="rounded-lg border border-light-4 dark:border-dark-4 bg-gray-700 dark:bg-gray-700 p-3">
+                  <div className="mb-0.5 text-[12px] uppercase font-bold tracking-tight text-gray-200">Input</div>
+                  <pre className="whitespace-pre-wrap font-mono text-[12px] text-gray-100 leading-5 overflow-auto max-h-24 bg-gray-700 dark:bg-gray-700 p-0">{selectedTestCaseInput || 'No input available'}</pre>
                 </div>
-                <div className="rounded-xl border border-light-4 dark:border-dark-4 bg-white dark:bg-dark-2 p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 font-bold">Expected output</div>
-                  <pre className="whitespace-pre-wrap font-mono text-xs text-dark-1 dark:text-light-1 leading-5 overflow-auto max-h-28">{formatCaseValue(selectedTestCase.output) || 'No output available'}</pre>
+                <div className="rounded-lg border border-light-4 dark:border-dark-4 bg-gray-700 dark:bg-gray-700 p-3">
+                  <div className="mb-0.5 text-[12px] uppercase font-bold tracking-tight text-gray-200">Expected output</div>
+                  <pre className="whitespace-pre-wrap font-mono text-[12px] text-gray-100 leading-5 overflow-auto max-h-24 bg-gray-700 dark:bg-gray-700 p-0">{formatCaseValue(selectedTestCase.output) || 'No output available'}</pre>
                 </div>
               </div>
             ) : (
-              <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">No test cases available.</div>
+              <div className="px-3 py-4 text-xs text-gray-500 dark:text-gray-400">No test cases available.</div>
             )}
           </div>
         )}
 
         {activeTab === "results" && (
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden">
+          <div className="flex flex-1 min-h-0 flex-col gap-2 overflow-hidden">
             <OutputWindow outputDetails={outputDetails} additionalStyles={additionalStyles} theme={isDarkMode ? "dark" : "light"} />
 
             {outputDetails?.accepted && (
-              <div className="border-t border-light-4 dark:border-dark-4 pt-3">
+              <div className="border-t border-light-4 dark:border-dark-4 pt-2">
                 {!explanation ? (
                   <button
                     onClick={fetchExplanation}
                     disabled={explanationLoading}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:bg-gray-400 transition-colors flex items-center gap-1.5 shadow-sm"
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700 disabled:bg-gray-400 transition-colors flex items-center gap-1 shadow-sm"
                   >
                     <FiBookOpen className="inline" />{explanationLoading ? 'Analyzing...' : 'Explain My Solution'}
                   </button>
                 ) : (
-                  <div className="space-y-2 text-sm p-1">
-                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5"><FiBookOpen /> Solution Explanation</h4>
+                  <div className="space-y-1.5 text-xs p-1">
+                    <h4 className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><FiBookOpen /> Solution Explanation</h4>
                     {explanation.explanation && (
                       <p className="text-dark-1 dark:text-light-4 leading-relaxed">{explanation.explanation}</p>
                     )}
                     {(explanation.timeComplexity || explanation.spaceComplexity) && (
-                      <div className="flex gap-3 flex-wrap mt-2">
-                        {explanation.timeComplexity && <span className="px-2 py-1 bg-light-3 dark:bg-dark-4 rounded text-[10px] font-bold">TIME: {explanation.timeComplexity}</span>}
-                        {explanation.spaceComplexity && <span className="px-2 py-1 bg-light-3 dark:bg-dark-4 rounded text-[10px] font-bold">SPACE: {explanation.spaceComplexity}</span>}
+                      <div className="flex gap-2 flex-wrap mt-1.5">
+                        {explanation.timeComplexity && <span className="px-1.5 py-0.5 bg-light-3 dark:bg-dark-4 rounded text-[9px] font-bold">TIME: {explanation.timeComplexity}</span>}
+                        {explanation.spaceComplexity && <span className="px-1.5 py-0.5 bg-light-3 dark:bg-dark-4 rounded text-[9px] font-bold">SPACE: {explanation.spaceComplexity}</span>}
                       </div>
                     )}
                   </div>
@@ -631,7 +631,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   };
 
   const renderBottomStrip = () => (
-    <div className={`w-full shrink-0 pb-1.5 transition-all duration-200 ${activeTab === 'hint' ? 'px-0' : 'px-1'}`}>
+    <div className={`w-full ml-0.5 pr-2.5 shrink-0 pb-1.5 transition-all duration-200 ${activeTab === 'hint' ? 'px-0' : 'px-1'}`}>
       <div className="h-8 w-full rounded-none rounded-b-lg border border-light-4 dark:border-dark-4 bg-light-2/95 dark:bg-dark-3/95 px-3 text-sm flex items-center gap-3 shadow-sm backdrop-blur-sm">
         <button
           onClick={() => setActiveTab((prev) => (prev === 'hint' ? null : 'hint'))}
@@ -675,7 +675,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
 
   return (
     <div className="relative w-full h-full min-h-0 flex flex-col overflow-hidden">
-      <div className={`mx-1 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg px-3 py-1 shadow-sm flex-wrap border ${isDarkMode ? 'border-[#2f2f2f] bg-[#1e1e1e] text-gray-300' : 'border-light-4 bg-white/95 text-dark-1'}`}>
+      <div className={`mx-1.5 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-t-lg px-3 py-1 shadow-sm flex-wrap border ${isDarkMode ? 'border-[#2f2f2f] bg-[#1e1e1e] text-gray-300' : 'border-light-4 bg-white/95 text-dark-1'}`}>
         <div className="flex gap-1.5 items-center flex-wrap">
           <div className="flex items-center gap-1">
             <button onClick={formatCode} className={`rounded-none p-1 transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-[#2a2a2a]' : 'text-gray-600 hover:bg-light-3'}`} title="Format Code">
@@ -865,7 +865,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
             onClick={() => handleCompile()}
             disabled={!code}
             title="Run (Ctrl+Enter)"
-            className={`px-3 py-1 rounded-none text-xs transition-colors flex items-center justify-center min-w-[50px] ${isDarkMode ? 'bg-[#2f2f2f] text-white hover:bg-[#3a3a3a]' : 'bg-light-3 text-dark-1 hover:bg-light-4'}`}
+            className={`px-3 py-1 rounded-lg text-xs transition-colors flex items-center justify-center min-w-[60px] ${isDarkMode ? 'bg-[#2f2f2f] text-white hover:bg-[#3a3a3a]' : 'bg-light-3 text-dark-1 hover:bg-light-4'}`}
           >
             {isCodeRunning ? <Loader /> : "Run"}
           </button>
@@ -874,14 +874,14 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
               onClick={handleSubmit}
               disabled={!code}
               title="Submit (Ctrl+Shift+Enter)"
-              className={`px-3 py-1 rounded-none text-xs transition-colors flex items-center justify-center min-w-[60px] ${theme.value === 'light' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+              className={`px-3 py-1 rounded-lg text-xs transition-colors flex items-center justify-center min-w-[60px] ${theme.value === 'light' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
             >
               {isCodeSubmitting ? <Loader /> : "Submit"}
             </button>
           )}
         </div>
       </div>
-      <div className="mx-1 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 max-md:hidden overflow-hidden">
+      <div className="mx-1.5 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 max-md:hidden overflow-hidden">
         <Split
           direction="vertical"
           sizes={activeTab ? [60, 40] : [100, 0]}
@@ -889,11 +889,11 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           gutterSize={activeTab ? 8 : 0}
           className="h-full w-full"
         >
-          <div className="h-full w-full min-h-0 rounded-t-lg border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
+          <div className="h-full w-full min-h-0 border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
             <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
           </div>
           <div className={`h-full w-full min-h-0 overflow-hidden relative ${!activeTab ? 'hidden' : ''}`}>
-            <div className="h-full w-full rounded-none rounded-b-2xl border border-light-4 dark:border-dark-4 bg-light-1/98 dark:bg-dark-2/98 p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm overflow-hidden">
+            <div className="h-full w-full rounded-none border border-light-4 dark:border-dark-4 bg-light-1/98 dark:bg-dark-2/98 p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm overflow-hidden">
               {renderBottomPanel()}
             </div>
           </div>
