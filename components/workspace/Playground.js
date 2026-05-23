@@ -358,7 +358,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         }
       }
       setTestCaseResults(newResults);
-      
+
       // Set overall status for the top header
       const allPassed = newResults.every(r => r?.status === 'passed');
       setOutputDetails(prev => ({
@@ -438,19 +438,19 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
       const data = await res.json();
       if (data.isAccepted === "accepted") {
         setSubmitted(data);
-        setOutputDetails({ 
+        setOutputDetails({
           ...data,
-          output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, 
-          submitted: true, 
-          accepted: true 
+          output: `Accepted — ${data.passedTestCases}/${data.totalTestCases} test cases passed`,
+          submitted: true,
+          accepted: true
         });
         setActiveTab(null); // Close the bottom panel so only the AI analysis tab is prominent
       } else {
         setSubmitted(data);
-        setOutputDetails({ 
+        setOutputDetails({
           ...data,
-          output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`, 
-          submitted: true, 
+          output: data.output || `Rejected — ${data.passedTestCases}/${data.totalTestCases} test cases passed`,
+          submitted: true,
           accepted: false,
           caseInput: data.failedTestCase?.input,
           caseExpected: data.failedTestCase?.expectedOutput,
@@ -467,13 +467,13 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   }
 
   const onLanguageChange = (lang) => {
-    const currentDefault = currentProblem?.starterCodes?.[language.value] 
+    const currentDefault = currentProblem?.starterCodes?.[language.value]
       || (currentProblem?.starterCode ? getStarterForLanguage(currentProblem.starterCode, language.value) : mockComments[language.value]);
-    
+
     if (code && code !== currentDefault) {
       if (!window.confirm("Switching language will reset your code. Continue?")) return;
     }
-    
+
     setLanguage(lang);
     const nextDefault = currentProblem?.starterCodes?.[lang.value]
       || (currentProblem?.starterCode ? getStarterForLanguage(currentProblem.starterCode, lang.value) : mockComments[lang.value]);
@@ -509,9 +509,9 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                   </h4>
                   {isCodeRunning || isCodeSubmitting ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" /> : null}
                 </div>
-                
+
                 {outputDetails && (outputDetails.error || (outputDetails.resultStatus !== 'accepted')) && (
-                  <button 
+                  <button
                     onClick={() => copyAndAskCogni(outputDetails)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded transition-colors border border-red-500/20"
                   >
@@ -600,7 +600,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
                 <div className="px-3 py-4 text-xs text-gray-500 dark:text-gray-400">No test cases available.</div>
               )}
             </div>
-            
+
             {/* Show execution error details if any (e.g. Compilation Error) */}
             {outputDetails && (outputDetails.error && !outputDetails.caseInput) && (
               <div className="mt-1 rounded-md border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-300 whitespace-pre-wrap font-mono">
