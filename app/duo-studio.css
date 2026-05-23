@@ -413,6 +413,71 @@ html.dark .feature-card {
   box-shadow: 0 24px 60px rgba(230, 57, 70, 0.12);
 }
 
+/* ===== Synced red glowing animation ===== */
+:root {
+  --red-glow-duration: 3.2s;
+  --red-glow-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes redGlowBg {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes redGlowCursor {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 40px 8px rgba(230, 57, 70, 0.28);
+  }
+}
+
+/* Apply the glow to feature card background accent and cursor — runs in sync */
+.feature-card::after {
+  will-change: transform, opacity;
+  animation: redGlowBg var(--red-glow-duration) var(--red-glow-ease) infinite;
+}
+
+/* Ensure pseudo-element sits behind content and is large enough for wide cards */
+.feature-card::after {
+  z-index: 0;
+}
+
+/* Make the large (AI Code Review) card's glow bigger and more centered so it's visible */
+.feature-card.large::after {
+  width: 420px;
+  height: 420px;
+  inset: auto -28% -80% auto;
+  background: radial-gradient(circle, rgba(230, 57, 70, 0.18), transparent 60%);
+  transform-origin: center;
+}
+
+/* Keep card content above the glow */
+.feature-card .content {
+  position: relative;
+  z-index: 1;
+}
+
+.duo-cursor {
+  animation: redGlowCursor var(--red-glow-duration) var(--red-glow-ease)
+    infinite;
+}
+
+/* Subtle glow on profile avatar */
+.duo-profile-btn .w-8 {
+  animation: redGlowCursor var(--red-glow-duration) var(--red-glow-ease)
+    infinite;
+}
+
 .feature-card.large {
   grid-column: span 2;
   min-height: 240px;
@@ -651,7 +716,7 @@ html.dark .services-section > p {
   box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
 }
 
-.img6{
+.img6 {
   right: 2%;
   bottom: -50%;
   border-radius: 10px;
@@ -665,7 +730,7 @@ html.dark .services-section > p {
   box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
 }
 
-.img5{
+.img5 {
   border-radius: 10px;
   left: 3%;
   top: -120%;

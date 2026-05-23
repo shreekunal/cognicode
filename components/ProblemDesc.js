@@ -87,29 +87,29 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
 
     return (
         <div className='w-full h-full min-h-0 flex flex-col overflow-x-hidden overflow-hidden px-1 pb-1.5'>
-            <div className='flex h-11 w-full items-center pt-2 bg-light-3 dark:bg-dark-4 rounded-t-lg px-2'>
+            <div className='flex h-11 w-full items-center pt-2 bg-light-3 dark:bg-dark-4 rounded-t-lg px-1'>
                 <button
                     onClick={() => setActiveTab('description')}
-                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'description' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors ${activeTab === 'description' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
                 >
                     Description
                 </button>
                 <button
                     onClick={() => setActiveTab('solutions')}
-                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'solutions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors ${activeTab === 'solutions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
                 >
                     Solutions
                 </button>
                 <button
                     onClick={() => setActiveTab('ask-cogni')}
-                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors font-semibold flex items-center gap-2 ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 text-red-600 dark:text-red-400' : 'text-red-500/70 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400'}`}
+                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors font-semibold flex items-center gap-1 ${activeTab === 'ask-cogni' ? 'bg-light-2 dark:bg-dark-3 text-red-600 dark:text-red-400' : 'text-red-500/70 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400'}`}
                 >
-                    <BsStars size={14} className={activeTab === 'ask-cogni' ? 'text-red-600' : 'text-red-500'} />
+                    <BsStars size={12} className={activeTab === 'ask-cogni' ? 'text-red-600' : 'text-red-500'} />
                     Ask Cogni
                 </button>
                 <button
                     onClick={() => setActiveTab('submissions')}
-                    className={`rounded-t-md px-5 py-[10px] text-sm cursor-pointer transition-colors ${activeTab === 'submissions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
+                    className={`rounded-t-md px-3 py-[8px] text-sm cursor-pointer transition-colors ${activeTab === 'submissions' ? 'bg-light-2 dark:bg-dark-3 dark:text-light-1' : 'text-gray-500 dark:text-gray-400 hover:text-dark-1 dark:hover:text-light-1'}`}
                 >
                     Submissions
                 </button>
