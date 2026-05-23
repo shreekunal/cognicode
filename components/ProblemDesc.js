@@ -10,6 +10,7 @@ import AIRecommendation from './AIRecommendation';
 import AskCogni from './AskCogni';
 import CodeReview from './CodeReview';
 import ComplexityAnalysis from './ComplexityAnalysis';
+import PerformanceGraph from './PerformanceGraph';
 
 const ProblemDesc = ({ problems, code, language, solved, submissionResult, activeTab: externalTab, setActiveTab: setExternalTab }) => {
 
@@ -242,6 +243,7 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                     
                     {/* Performance Stats Section */}
                     {submissionResult && (
+                        <>
                         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                             <div className='bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col items-center justify-center text-center'>
                                 <span className='text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider mb-1'>Test Cases</span>
@@ -259,6 +261,23 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
                                 <span className='text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium mt-1'>Usage</span>
                             </div>
                         </div>
+
+                        {/* Performance Graphs Section */}
+                        <div className='bg-white dark:bg-dark-2 rounded-xl p-6 border border-light-4 dark:border-dark-4 shadow-sm space-y-10'>
+                            <PerformanceGraph 
+                                type="Runtime"
+                                userValue={parseFloat(submissionResult.cpuTime || 0) * 1000}
+                                label="Runtime"
+                                unit="ms"
+                            />
+                            <PerformanceGraph 
+                                type="Memory"
+                                userValue={parseFloat(submissionResult.memory || 0) / 1024}
+                                label="Memory"
+                                unit="KB"
+                            />
+                        </div>
+                        </>
                     )}
 
                     <div className='space-y-8'>
