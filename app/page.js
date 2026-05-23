@@ -1,12 +1,9 @@
 "use client";
-
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { FaArrowRight, FaChartColumn, FaClock, FaCode, FaLightbulb, FaUserGear } from "react-icons/fa6";
-
 export const dynamic = "force-dynamic";
-
 export default function Home() {
   const cursorRef = useRef(null);
   const { data: session } = useSession();
@@ -200,12 +197,12 @@ export default function Home() {
           </div>
 
           <div className="elem">
-            <img className="left img1" src="/cognicode/Prepare&Learn-left.png" alt="" />
+            <img className="img5" src="/cognicode/Practice&Learn-right.png" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
             </div>
-            <img className="right img2" src="/cognicode/Prepare&Learn-right.png" alt="" />
+            <img className="img6" src="/cognicode/Practice&Learn-left.png" alt="" />
           </div>
         </section>
 

@@ -625,7 +625,7 @@ html.dark .services-section > p {
   justify-content: center;
   align-items: center;
   position: relative;
-  margin: 2vw 0;
+  margin: -1.5vw 0;
 }
 
 .services-section .elem img {
@@ -646,19 +646,37 @@ html.dark .services-section > p {
 
 .services-section .elem .right {
   right: 2%;
-  bottom: -180%;
+  bottom: -130%;
+  border-radius: 10px;
+  box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
+}
+
+.img6{
+  right: 2%;
+  bottom: -50%;
+  border-radius: 10px;
+  box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
 }
 
 .services-section .elem .left {
+  border-radius: 10px;
   left: 3%;
-  top: -150%;
+  top: -30%;
+  box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
+}
+
+.img5{
+  border-radius: 10px;
+  left: 3%;
+  top: -120%;
+  box-shadow: rgba(255, 0, 0, 0.128) 5px 5px 5px;
 }
 
 .services-section .elem .text {
-  height: 110px;
+  height: 150px;
   overflow: hidden;
   position: relative;
-  z-index: 5;
+  z-index: 50;
 }
 
 .services-section .elem .text h1 {
