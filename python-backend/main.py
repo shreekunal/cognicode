@@ -20,8 +20,10 @@ except Exception:
     openai = None
     OPENAI_AVAILABLE = False
 
-# Load root .env (all secrets consolidated there)
+# Load environment variables
+# Try local .env first, then fall back to parent .env
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # Configure LLM (supports OpenAI, Groq, or any OpenAI-compatible API)
 OPENAI_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
@@ -47,10 +49,20 @@ except Exception as e:
     problems_collection = None
     MONGO_CONNECTED = False
 
-# CORS middleware for Next.js frontend
+# CORS middleware configuration
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    FRONTEND_URL,
+]
+# Add Vercel branch/preview URLs if needed
+if os.getenv("VERCEL_URL"):
+    allowed_origins.append(f"https://{os.getenv('VERCEL_URL')}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=[origin for origin in allowed_origins if origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
