@@ -21,7 +21,7 @@ export default function DuoNav() {
 
     useEffect(() => {
         if (userID) {
-            fetch("/cognicode/api/getUserInfo")
+            fetch("/api/getUserInfo")
                 .then(res => res.json())
                 .then(data => {
                     if (data.image) setUserImage(data.image);
@@ -67,7 +67,7 @@ export default function DuoNav() {
     return (
         <div id="duo-nav" className={isCompact ? "compact" : ""}>
             <Link href="/" className="duo-nav-logo">
-                <img src="/cognicode/coding.png" alt="cognicode" />
+                <img src="/coding.png" alt="cognicode" />
                 <span>COGNI<span className="text-red-500">CODE</span></span>
             </Link>
             <div className="part-2">
@@ -86,7 +86,7 @@ export default function DuoNav() {
                 {!isProfilePage && (
                     <button onClick={toggleTheme} className="duo-theme-btn">
                         <img
-                            src={theme === "light" ? "/cognicode/dark-mode.png" : "/cognicode/light-mode.png"}
+                            src={theme === "light" ? "/dark-mode.png" : "/light-mode.png"}
                             alt="theme"
                         />
                     </button>
@@ -101,7 +101,7 @@ export default function DuoNav() {
                             )}
                         </div>
                     ) : (
-                        <img src="/cognicode/profile.png" alt="profile" />
+                        <img src="/profile.png" alt="profile" />
                     )}
                 </Link>
             </div>

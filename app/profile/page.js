@@ -16,7 +16,7 @@ export default function ProfileSection() {
 
   async function fetchUserInfo() {
     try {
-      const response = await axios.get("/cognicode/api/getUserInfo");
+      const response = await axios.get("/api/getUserInfo");
       const data = response.data;
       setData(data);
     } catch (error) {
@@ -26,7 +26,7 @@ export default function ProfileSection() {
 
   async function fetchStats() {
     try {
-      const res = await fetch("/cognicode/api/getUserStats");
+      const res = await fetch("/api/getUserStats");
       const data = await res.json();
       if (data.ok) setStats(data.stats);
     } catch (error) {
@@ -36,7 +36,7 @@ export default function ProfileSection() {
 
   async function fetchTotalProblems() {
     try {
-      const res = await fetch("/cognicode/api/getAllProblems");
+      const res = await fetch("/api/getAllProblems");
       const problems = await res.json();
       const counts = { Easy: 0, Medium: 0, Hard: 0 };
       problems.forEach(p => {

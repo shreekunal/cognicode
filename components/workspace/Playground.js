@@ -99,7 +99,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     if (!clickedProblemId) return;
     setLastCodeLoading(true);
     try {
-      const res = await fetch(`/cognicode/api/getSubmissions?problemId=${clickedProblemId}`);
+      const res = await fetch(`/api/getSubmissions?problemId=${clickedProblemId}`);
       const data = await res.json();
       if (data.ok && data.submissions?.length > 0) {
         const lastSub = data.submissions[0];
@@ -239,7 +239,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     setHintLoading(true);
     setHintError(null);
     try {
-      const res = await fetch('/cognicode/api/ai/hint', {
+      const res = await fetch('/api/ai/hint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -341,7 +341,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         const testCase = visibleTestCases[i];
         const tcInput = formatCaseValue(testCase.input);
         try {
-          const response = await fetch('/cognicode/api/execute', {
+          const response = await fetch('/api/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ language: language.value, code: code, input: tcInput }),
@@ -374,7 +374,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
     const runInput = input !== null ? input : (isCustomInput ? customInput : selectedTestCaseInput);
 
     try {
-      const response = await fetch('/cognicode/api/execute', {
+      const response = await fetch('/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: language.value, code: code, input: runInput }),
@@ -430,7 +430,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
   const handleSubmit = async () => {
     setIsCodeSubmitting(true);
     try {
-      const res = await fetch("/cognicode/api/submitCode", {
+      const res = await fetch("/api/submitCode", {
         method: "POST",
         body: JSON.stringify({ code, problem: clickedProblemId, language: language.value }),
         headers: { "Content-Type": "application/json" },

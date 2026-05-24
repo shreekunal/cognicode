@@ -179,30 +179,30 @@ export default function Home() {
           </p>
 
           <div className="elem">
-            <img className="left img1" src="/cognicode/Learn-left.png" alt="" />
+            <img className="left img1" src="/Learn-left.png" alt="" />
             <div className="text">
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
               <Link href={userID ? "/learn" : "/login"}><h1>Learn</h1></Link>
             </div>
-            <img className="right img2" src="/cognicode/Learn-right.png" alt="" />
+            <img className="right img2" src="/Learn-right.png" alt="" />
           </div>
 
           <div className="elem">
-            <img className="left img3" src="/cognicode/Problems-left.png" alt="" />
+            <img className="left img3" src="/Problems-left.png" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Problems</h1></Link>
             </div>
-            <img className="right img4" src="/cognicode/Problems-right.png" alt="" />
+            <img className="right img4" src="/Problems-right.png" alt="" />
           </div>
 
           <div className="elem">
-            <img className="img5" src="/cognicode/Practice&Learn-right.png" alt="" />
+            <img className="img5" src="/Practice&Learn-right.png" alt="" />
             <div className="text">
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
               <Link href={userID ? "/problems" : "/login"}><h1>Prepare & Test</h1></Link>
             </div>
-            <img className="img6" src="/cognicode/Practice&Learn-left.png" alt="" />
+            <img className="img6" src="/Practice&Learn-left.png" alt="" />
           </div>
         </section>
 
@@ -214,23 +214,23 @@ export default function Home() {
                 <span>MEET OUR</span> <span>DEVELOPERS</span>
               </h1>
             </div>
-            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-verizon.webp">
+            <div className="dev-row" data-image="/duo/images/home-mentions-verizon.webp">
               <h4>Dr. Prashant Aggarwal</h4>
               <p><span>Mentor &amp; Guide</span></p>
             </div>
-            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-awwwards-honorablemention.webp">
+            <div className="dev-row" data-image="/duo/images/home-mentions-awwwards-honorablemention.webp">
               <h4>Kunal Singh</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-awwwards-mobile.webp">
+            <div className="dev-row" data-image="/duo/images/home-mentions-awwwards-mobile.webp">
               <h4>Manish Pandey</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-mindsparkle.webp">
+            <div className="dev-row" data-image="/duo/images/home-mentions-mindsparkle.webp">
               <h4>Kunal Malhotra</h4>
               <p><span>Developer</span></p>
             </div>
-            <div className="dev-row" data-image="/cognicode/duo/images/home-mentions-orpetron.webp">
+            <div className="dev-row" data-image="/duo/images/home-mentions-orpetron.webp">
               <h4>Lavish Nehra</h4>
               <p><span>Developer</span></p>
             </div>

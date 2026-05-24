@@ -33,7 +33,7 @@ export default function ComplexityAnalysis({ code, language, autoFetch }) {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/cognicode/api/ai/complexity', {
+            const res = await fetch('/api/ai/complexity', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language }),

@@ -11,7 +11,7 @@ const ProblemPage = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const response = await fetch(`/cognicode/api/getProblembyId?id=${params.id}`);
+        const response = await fetch(`/api/getProblembyId?id=${params.id}`);
         const data = await response.json();
         if (data) {
           setProblems([data]); // Wrap single problem in array for compatibility

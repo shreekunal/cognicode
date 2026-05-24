@@ -21,7 +21,7 @@ const Problems = () => {
 
     useEffect(() => {
         const fetchProblems = async () => {
-            const response = await fetch('/cognicode/api/getAllProblems');
+            const response = await fetch('/api/getAllProblems');
             const data = await response.json();
             setProblems(data);
         }
@@ -32,7 +32,7 @@ const Problems = () => {
         if (!session?.user?._id) return;
         const fetchSolved = async () => {
             try {
-                const res = await fetch('/cognicode/api/getUserStats');
+                const res = await fetch('/api/getUserStats');
                 const data = await res.json();
                 if (data.ok && data.stats?.solvedProblemIds) {
                     setSolvedIds(new Set(data.stats.solvedProblemIds));

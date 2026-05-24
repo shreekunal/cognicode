@@ -37,7 +37,7 @@ if OPENAI_AVAILABLE and OPENAI_API_KEY:
 app = FastAPI(title="CogniCode AI Backend - Python Edition", version="3.0.0")
 
 # MongoDB connection with error resilience
-MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/cognicode")
+MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
     client.server_info()  # Force connection check

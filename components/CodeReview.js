@@ -38,7 +38,7 @@ export default function CodeReview({ code, language, autoFetch }) {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/cognicode/api/ai/codeReview', {
+            const res = await fetch('/api/ai/codeReview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language }),

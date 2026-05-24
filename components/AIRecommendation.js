@@ -16,7 +16,7 @@ export default function AIRecommendation({ currentDifficulty }) {
     setLoading(true);
     setError(null);
     try {
-      const statsRes = await fetch('/cognicode/api/getUserStats');
+      const statsRes = await fetch('/api/getUserStats');
       const statsData = await statsRes.json();
 
       const userStats = statsData.ok ? {
@@ -30,7 +30,7 @@ export default function AIRecommendation({ currentDifficulty }) {
         lastDifficulty: currentDifficulty || 'Easy'
       };
 
-      const res = await fetch('/cognicode/api/ai/nextQuestion', {
+      const res = await fetch('/api/ai/nextQuestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userStats }),

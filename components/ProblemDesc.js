@@ -50,7 +50,7 @@ const ProblemDesc = ({ problems, code, language, solved, submissionResult, activ
         if (!params?.id) return;
         setSubmissionsLoading(true);
         try {
-            const res = await fetch(`/cognicode/api/getSubmissions?problemId=${params.id}`);
+            const res = await fetch(`/api/getSubmissions?problemId=${params.id}`);
             const data = await res.json();
             if (data.ok) {
                 setSubmissions(data.submissions);

@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoginInProgress(true);
 
     try {
-      const response = await fetch("/cognicode/api/register", {
+      const response = await fetch("/api/register", {
         method: "POST",
         body: JSON.stringify({ email, password }),
         headers: { "Content-Type": "application/json" },
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
       <Link href='/' className='flex justify-center items-center mb-10 gap-4 animate-on-load animate-scale-in'>
         <img
-          src='/cognicode/coding.png'
+          src='/coding.png'
           alt='cognicode_logo'
           className='w-14 h-14 object-contain'
         />
@@ -120,7 +120,7 @@ export default function LoginPage() {
             className="w-full flex justify-center items-center gap-2 py-3 bg-accent hover:bg-accent-dark text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
           >
             {loginInProgress ? (
-              <img src="/cognicode/loader.svg" alt="loading" className="w-5 h-5 object-contain" />
+              <img src="/loader.svg" alt="loading" className="w-5 h-5 object-contain" />
             ) : isLogin ? "Sign In" : "Create Account"}
           </button>
         </form>

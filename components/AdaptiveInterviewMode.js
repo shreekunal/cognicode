@@ -120,7 +120,7 @@ export default function AdaptiveInterviewMode() {
         const loadProblems = async () => {
             try {
                 setLoadingProblems(true);
-                const res = await fetch('/cognicode/api/getAllProblems');
+                const res = await fetch('/api/getAllProblems');
                 const data = await res.json();
                 if (!res.ok || !Array.isArray(data)) {
                     throw new Error('Unable to load problems for interview mode.');
@@ -205,7 +205,7 @@ export default function AdaptiveInterviewMode() {
         setMcqLoading(true);
         setPhase('live-mcq');
         try {
-            const res = await fetch('/cognicode/api/ai/mcq', {
+            const res = await fetch('/api/ai/mcq', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -294,7 +294,7 @@ export default function AdaptiveInterviewMode() {
         setIsRunning(true);
         setRunOutput('Running...');
         try {
-            const res = await fetch('/cognicode/api/execute', {
+            const res = await fetch('/api/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -323,7 +323,7 @@ export default function AdaptiveInterviewMode() {
 
         try {
             setHint('Generating hint...');
-            const res = await fetch('/cognicode/api/ai/hint', {
+            const res = await fetch('/api/ai/hint', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -383,7 +383,7 @@ export default function AdaptiveInterviewMode() {
     const buildScorecard = async (results) => {
         setBuildingScorecard(true);
         try {
-            const res = await fetch('/cognicode/api/ai/interview', {
+            const res = await fetch('/api/ai/interview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ results }),
@@ -403,7 +403,7 @@ export default function AdaptiveInterviewMode() {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch('/cognicode/api/submitCode', {
+            const res = await fetch('/api/submitCode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
