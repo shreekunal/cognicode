@@ -906,7 +906,7 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
           gutterSize={activeTab ? 8 : 0}
           className="h-full w-full"
         >
-          <div className="h-full w-full min-h-0 border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
+          <div className={`h-full w-full min-h-0 border shadow-sm overflow-hidden ${theme.value === 'dark' ? 'border-[#2f2f2f] bg-[#1e1e1e]' : 'border-light-4 bg-[#fffffe]'}`}>
             <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
           </div>
           <div className={`h-full w-full min-h-0 overflow-hidden relative ${!activeTab ? 'hidden' : ''}`}>
@@ -917,11 +917,11 @@ const Playground = ({ problems, isForSubmission = true, setSubmitted, code, setC
         </Split>
       </div>
       <div className="mx-1 w-[calc(100%-1rem)] flex-grow min-h-0 pt-1 pb-2 md:hidden overflow-hidden flex flex-col">
-        <div className="flex-grow relative min-h-[300px] rounded-t-lg border border-[#2f2f2f] bg-[#1e1e1e] shadow-sm overflow-hidden">
+        <div className={`flex-grow relative min-h-[300px] rounded-t-lg border shadow-sm overflow-hidden ${theme.value === 'dark' ? 'border-[#2f2f2f] bg-[#1e1e1e]' : 'border-light-4 bg-white'}`}>
           <CodeEditorWindow code={code} onChange={onChange} language={language.value} theme={theme.value} fontSize={fontSize.value} fontFamily={activeFontStyle.family} showLineNumbers={editorSettings.showLineNumbers} showIndentationGuides={editorSettings.showIndentationGuides} />
         </div>
         <div className={`relative flex flex-1 min-h-0 flex-col transition-all duration-300 overflow-hidden ${activeTab ? 'min-h-[350px]' : 'h-10'}`}>
-          <div className="h-full w-full rounded-b-2xl border border-[#2f2f2f] bg-[#1e1e1e] p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] overflow-hidden flex flex-col min-h-0">
+          <div className={`h-full w-full rounded-b-2xl border p-2 shadow-[0_-8px_24px_rgba(0,0,0,0.18)] overflow-hidden flex flex-col min-h-0 ${theme.value === 'dark' ? 'border-[#2f2f2f] bg-[#1e1e1e]' : 'border-light-4 bg-white'}`}>
             {activeTab && renderBottomPanel('max-md:pb-2')}
           </div>
         </div>
