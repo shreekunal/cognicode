@@ -13,11 +13,11 @@ import math
 from pymongo import MongoClient
 from urllib.parse import quote_plus
 
+openai_client = None
 try:
-    import openai
+    from openai import OpenAI
     OPENAI_AVAILABLE = True
 except Exception:
-    openai = None
     OPENAI_AVAILABLE = False
 
 # Load environment variables
@@ -29,10 +29,16 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 OPENAI_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
 OPENAI_API_BASE = os.getenv("GROQ_API_BASE") or os.getenv("OPENAI_API_BASE")
 OPENAI_MODEL = os.getenv("GROQ_MODEL") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
 if OPENAI_AVAILABLE and OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
-    if OPENAI_API_BASE:
-        openai.api_base = OPENAI_API_BASE
+    try:
+        openai_client = OpenAI(
+            api_key=OPENAI_API_KEY,
+            base_url=OPENAI_API_BASE if OPENAI_API_BASE else None
+        )
+    except Exception as e:
+        print(f"[WARN] Failed to initialize OpenAI client: {e}")
+        OPENAI_AVAILABLE = False
 
 app = FastAPI(title="CogniCode AI Backend - Python Edition", version="3.0.0")
 
@@ -762,7 +768,7 @@ def review_code(request: CodeReviewRequest, req: Request):
                     f"You are a senior code reviewer. Provide a concise review of the following {language} code,\n"
                     f"focusing on bugs, style, performance, and best practices. Return a JSON object with keys: bugs, style, performance, bestPractices, summary.\n\nCode:\n{code}\n"
                 )
-                resp = openai.ChatCompletion.create(
+                resp = openai_client.chat.completions.create(
                     model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": "You are a helpful code review assistant."},
@@ -946,7 +952,7 @@ def analyze_complexity(request: ComplexityRequest, req: Request):
                     f"Return a JSON object with keys: timeComplexity, spaceComplexity, explanation, optimizationSuggestions (array).\n"
                     f"Be precise with Big-O notation. If there are multiple functions, analyze the main/dominant one.\n\nCode:\n{code}\n"
                 )
-                resp = openai.ChatCompletion.create(
+                resp = openai_client.chat.completions.create(
                     model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": "You are a computer science expert specializing in algorithm analysis. Always respond with valid JSON."},
@@ -1010,7 +1016,7 @@ def get_hint(request: HintRequest, req: Request):
     )
 
     try:
-        resp = openai.ChatCompletion.create(
+        resp = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a helpful coding tutor. You give hints that guide students toward the solution without giving it away. Be encouraging."},
@@ -1053,7 +1059,7 @@ def explain_solution(request: ExplainRequest, req: Request):
     )
 
     try:
-        resp = openai.ChatCompletion.create(
+        resp = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a computer science tutor explaining solutions. Always respond with valid JSON."},
@@ -1104,7 +1110,7 @@ def generate_mcq(request: MCQRequest, req: Request):
     )
 
     try:
-        resp = openai.ChatCompletion.create(
+        resp = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a senior technical interviewer. Respond only with valid JSON array."},
@@ -1162,7 +1168,7 @@ def chat_tutor(request: ChatRequest, req: Request):
         messages.append({"role": msg.role, "content": msg.content})
 
     try:
-        resp = openai.ChatCompletion.create(
+        resp = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=messages,
             max_tokens=1200,
