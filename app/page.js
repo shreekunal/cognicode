@@ -115,7 +115,7 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-content">
             <h1>Code Smarter</h1>
-            <h2>AI-Powered Mastery</h2>
+            <h2>AI-Powerd Mastery</h2>
 
             <div className="hero-cta">
               <Link href={userID ? "/problems" : "/login"} className="main-cta">
